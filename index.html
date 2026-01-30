@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#FFFFFF">
+    <title>Bus Arrivals</title>
+    <style>
+        /* Reset and Base */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: none !important;
+            animation: none !important;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            scroll-behavior: auto !important;
+        }
+
+        body {
+            font-family: Arial, system-ui, sans-serif;
+            background-color: #FFFFFF;
+            color: #000000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Flash Overlay for E-Ink Refresh */
+        #flash-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            display: none;
+        }
+
+        #flash-overlay.flash-black {
+            display: block;
+            background-color: #000000;
+        }
+
+        #flash-overlay.flash-white {
+            display: block;
+            background-color: #FFFFFF;
+        }
+
+        /* Main Container */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            padding: 16px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid #000000;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #settings-btn {
+            width: 40px;
+            height: 40px;
+            background-color: #FFFFFF;
+            border: 3px solid #000000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        /* Loading State */
+        #loading {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+        }
+
+        /* Error State */
+        #error {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+            padding: 20px;
+            border: 4px solid #000000;
+            display: none;
+        }
+
+        /* Arrivals Container */
+        #arrivals {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Next Bus - Primary Display */
+        .arrival-primary {
+            flex: 2;
+            border: 4px solid #000000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .arrival-primary .route {
+            font-size: 4rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .arrival-primary .time {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .arrival-primary .occupancy {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background-color: #000000;
+            color: #FFFFFF;
+            text-transform: uppercase;
+        }
+
+        /* Secondary Arrivals */
+        .arrivals-secondary {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+        }
+
+        .arrival-secondary {
+            flex: 1;
+            border: 3px solid #000000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .arrival-secondary .route {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .arrival-secondary .time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .arrival-secondary .occupancy {
+            font-size: 0.875rem;
+            font-weight: bold;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background-color: #000000;
+            color: #FFFFFF;
+            text-transform: uppercase;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 2px solid #000000;
+            padding-top: 8px;
+            margin-top: 12px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Settings Overlay */
+        #settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #FFFFFF;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #settings-overlay.visible {
+            display: flex;
+        }
+
+        #settings-overlay h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 4px solid #000000;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: 3px solid #000000;
+            background-color: #FFFFFF;
+            color: #000000;
+            outline: none;
+        }
+
+        .form-group input::placeholder {
+            color: #000000;
+            opacity: 0.5;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 3px solid #000000;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+
+        .btn-secondary {
+            background-color: #FFFFFF;
+            color: #000000;
+        }
+
+        /* No Config State */
+        #no-config {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #no-config p {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Flash Overlay for E-Ink Anti-Ghosting -->
+    <div id="flash-overlay"></div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-overlay">
+        <h2>Settings</h2>
+        <div class="form-group">
+            <label for="api-key">TfNSW API Key</label>
+            <input type="text" id="api-key" placeholder="Enter your API key">
+        </div>
+        <div class="form-group">
+            <label for="stop-id">Stop ID (6-7 digits)</label>
+            <input type="text" id="stop-id" placeholder="e.g., 2000105" maxlength="7" pattern="[0-9]{6,7}">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
+            <button class="btn btn-primary" id="save-btn">Save</button>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app">
+        <header>
+            <h1>Bus Arrivals</h1>
+            <button id="settings-btn" aria-label="Settings">&#9881;</button>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loading">LOADING...</div>
+
+        <!-- Error State -->
+        <div id="error"></div>
+
+        <!-- No Configuration State -->
+        <div id="no-config">
+            <p>Configure API Key and Stop ID to start</p>
+            <button class="btn btn-primary" id="config-btn">Configure</button>
+        </div>
+
+        <!-- Arrivals Display -->
+        <div id="arrivals">
+            <div class="arrival-primary" id="arrival-1">
+                <div class="route"></div>
+                <div class="time"></div>
+                <div class="occupancy"></div>
+            </div>
+            <div class="arrivals-secondary">
+                <div class="arrival-secondary" id="arrival-2">
+                    <div class="route"></div>
+                    <div class="time"></div>
+                    <div class="occupancy"></div>
+                </div>
+                <div class="arrival-secondary" id="arrival-3">
+                    <div class="route"></div>
+                    <div class="time"></div>
+                    <div class="occupancy"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <span id="last-updated">Last Updated: --:--</span>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            API_BASE: 'https://api.transport.nsw.gov.au/v1/tp/departure_mon',
+            REFRESH_INTERVAL: 60000, // 1 minute
+            FLASH_INTERVAL: 300000,  // 5 minutes
+            FLASH_DURATION: 150      // milliseconds per flash phase
+        };
+
+        // State
+        let state = {
+            apiKey: localStorage.getItem('tfnsw_api_key') || '',
+            stopId: localStorage.getItem('tfnsw_stop_id') || '',
+            refreshTimer: null,
+            flashTimer: null
+        };
+
+        // DOM Elements
+        const elements = {
+            flashOverlay: document.getElementById('flash-overlay'),
+            settingsOverlay: document.getElementById('settings-overlay'),
+            settingsBtn: document.getElementById('settings-btn'),
+            cancelBtn: document.getElementById('cancel-btn'),
+            saveBtn: document.getElementById('save-btn'),
+            configBtn: document.getElementById('config-btn'),
+            apiKeyInput: document.getElementById('api-key'),
+            stopIdInput: document.getElementById('stop-id'),
+            loading: document.getElementById('loading'),
+            error: document.getElementById('error'),
+            noConfig: document.getElementById('no-config'),
+            arrivals: document.getElementById('arrivals'),
+            lastUpdated: document.getElementById('last-updated')
+        };
+
+        // Occupancy mapping
+        const OCCUPANCY_MAP = {
+            'MANY_SEATS': 'Many Seats',
+            'FEW_SEATS': 'Few Seats',
+            'STANDING_ROOM': 'Standing Room',
+            'LIMITED_STANDING': 'Limited Standing',
+            'FULL': 'Full',
+            'UNKNOWN': 'Unknown'
+        };
+
+        // Flash refresh for e-ink anti-ghosting
+        function performFlashRefresh() {
+            elements.flashOverlay.className = 'flash-black';
+            setTimeout(() => {
+                elements.flashOverlay.className = 'flash-white';
+                setTimeout(() => {
+                    elements.flashOverlay.className = '';
+                    elements.flashOverlay.style.display = 'none';
+                }, CONFIG.FLASH_DURATION);
+            }, CONFIG.FLASH_DURATION);
+        }
+
+        // Format date for API
+        function formatDateForAPI() {
+            const now = new Date();
+            const date = now.getFullYear().toString() +
+                        (now.getMonth() + 1).toString().padStart(2, '0') +
+                        now.getDate().toString().padStart(2, '0');
+            const time = now.getHours().toString().padStart(2, '0') +
+                        now.getMinutes().toString().padStart(2, '0');
+            return { date, time };
+        }
+
+        // Calculate minutes until arrival
+        function calculateMinutes(departureTime) {
+            const now = new Date();
+            const [hours, minutes] = departureTime.split(':').map(Number);
+            const departure = new Date(now);
+            departure.setHours(hours, minutes, 0, 0);
+
+            // Handle next day arrivals
+            if (departure < now) {
+                departure.setDate(departure.getDate() + 1);
+            }
+
+            const diffMs = departure - now;
+            const diffMins = Math.round(diffMs / 60000);
+            return diffMins;
+        }
+
+        // Format arrival time display
+        function formatArrivalTime(minutes) {
+            if (minutes <= 0) return 'NOW';
+            if (minutes === 1) return '1 MIN';
+            return `${minutes} MIN`;
+        }
+
+        // Parse occupancy from API response
+        function parseOccupancy(stopEvent) {
+            if (stopEvent.occupancy) {
+                return OCCUPANCY_MAP[stopEvent.occupancy] || stopEvent.occupancy;
+            }
+            return 'Unknown';
+        }
+
+        // Parse departure from API response
+        function parseDeparture(stopEvent) {
+            const transportation = stopEvent.transportation || {};
+            const routeNumber = transportation.number || transportation.disassembledName || 'N/A';
+
+            // Get departure time - prefer real-time, fallback to scheduled
+            let departureTime;
+            if (stopEvent.departureTimeEstimated) {
+                const estimated = new Date(stopEvent.departureTimeEstimated);
+                departureTime = estimated.getHours().toString().padStart(2, '0') + ':' +
+                               estimated.getMinutes().toString().padStart(2, '0');
+            } else if (stopEvent.departureTimePlanned) {
+                const planned = new Date(stopEvent.departureTimePlanned);
+                departureTime = planned.getHours().toString().padStart(2, '0') + ':' +
+                               planned.getMinutes().toString().padStart(2, '0');
+            } else {
+                departureTime = '00:00';
+            }
+
+            const minutes = calculateMinutes(departureTime);
+            const occupancy = parseOccupancy(stopEvent);
+
+            return {
+                route: routeNumber,
+                minutes: minutes,
+                timeDisplay: formatArrivalTime(minutes),
+                occupancy: occupancy
+            };
+        }
+
+        // Fetch departures from API
+        async function fetchDepartures() {
+            if (!state.apiKey || !state.stopId) {
+                showNoConfig();
+                return;
+            }
+
+            showLoading();
+
+            const { date, time } = formatDateForAPI();
+            const params = new URLSearchParams({
+                outputFormat: 'rapidJSON',
+                type_dm: 'stop',
+                name_dm: state.stopId,
+                itdDate: date,
+                itdTime: time,
+                mode: 'direct',
+                TfNSWDM: 'true',
+                departureMonitorMacro: 'true',
+                limit: '3'
+            });
+
+            try {
+                const response = await fetch(`${CONFIG.API_BASE}?${params}`, {
+                    headers: {
+                        'Authorization': `apikey ${state.apiKey}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.stopEvents || data.stopEvents.length === 0) {
+                    showError('No departures found');
+                    return;
+                }
+
+                const departures = data.stopEvents
+                    .slice(0, 3)
+                    .map(parseDeparture)
+                    .filter(d => d.minutes >= 0);
+
+                if (departures.length === 0) {
+                    showError('No upcoming departures');
+                    return;
+                }
+
+                displayArrivals(departures);
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showError(error.message || 'Failed to fetch data');
+            }
+        }
+
+        // Display arrivals
+        function displayArrivals(departures) {
+            hideAllStates();
+            elements.arrivals.style.display = 'flex';
+
+            // Primary arrival
+            const primary = document.getElementById('arrival-1');
+            if (departures[0]) {
+                primary.querySelector('.route').textContent = departures[0].route;
+                primary.querySelector('.time').textContent = departures[0].timeDisplay;
+                primary.querySelector('.occupancy').textContent = departures[0].occupancy;
+                primary.style.display = 'flex';
+            } else {
+                primary.style.display = 'none';
+            }
+
+            // Secondary arrivals
+            for (let i = 1; i <= 2; i++) {
+                const secondary = document.getElementById(`arrival-${i + 1}`);
+                if (departures[i]) {
+                    secondary.querySelector('.route').textContent = departures[i].route;
+                    secondary.querySelector('.time').textContent = departures[i].timeDisplay;
+                    secondary.querySelector('.occupancy').textContent = departures[i].occupancy;
+                    secondary.style.display = 'flex';
+                } else {
+                    secondary.style.display = 'none';
+                }
+            }
+
+            updateTimestamp();
+        }
+
+        // Update last updated timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                           now.getMinutes().toString().padStart(2, '0');
+            elements.lastUpdated.textContent = `Last Updated: ${timeStr}`;
+        }
+
+        // State display helpers
+        function hideAllStates() {
+            elements.loading.style.display = 'none';
+            elements.error.style.display = 'none';
+            elements.noConfig.style.display = 'none';
+            elements.arrivals.style.display = 'none';
+        }
+
+        function showLoading() {
+            hideAllStates();
+            elements.loading.style.display = 'flex';
+        }
+
+        function showError(message) {
+            hideAllStates();
+            elements.error.textContent = message;
+            elements.error.style.display = 'flex';
+            updateTimestamp();
+        }
+
+        function showNoConfig() {
+            hideAllStates();
+            elements.noConfig.style.display = 'flex';
+        }
+
+        // Settings management
+        function openSettings() {
+            elements.apiKeyInput.value = state.apiKey;
+            elements.stopIdInput.value = state.stopId;
+            elements.settingsOverlay.classList.add('visible');
+        }
+
+        function closeSettings() {
+            elements.settingsOverlay.classList.remove('visible');
+        }
+
+        function saveSettings() {
+            const apiKey = elements.apiKeyInput.value.trim();
+            const stopId = elements.stopIdInput.value.trim();
+
+            if (!apiKey || !stopId) {
+                return;
+            }
+
+            if (!/^\d{6,7}$/.test(stopId)) {
+                return;
+            }
+
+            state.apiKey = apiKey;
+            state.stopId = stopId;
+            localStorage.setItem('tfnsw_api_key', apiKey);
+            localStorage.setItem('tfnsw_stop_id', stopId);
+
+            closeSettings();
+            fetchDepartures();
+        }
+
+        // Initialize timers
+        function startTimers() {
+            // Clear existing timers
+            if (state.refreshTimer) clearInterval(state.refreshTimer);
+            if (state.flashTimer) clearInterval(state.flashTimer);
+
+            // Data refresh timer
+            state.refreshTimer = setInterval(fetchDepartures, CONFIG.REFRESH_INTERVAL);
+
+            // E-ink flash refresh timer
+            state.flashTimer = setInterval(performFlashRefresh, CONFIG.FLASH_INTERVAL);
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            elements.settingsBtn.addEventListener('click', openSettings);
+            elements.cancelBtn.addEventListener('click', closeSettings);
+            elements.saveBtn.addEventListener('click', saveSettings);
+            elements.configBtn.addEventListener('click', openSettings);
+
+            // Allow Enter key in inputs
+            elements.stopIdInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveSettings();
+            });
+            elements.apiKeyInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') elements.stopIdInput.focus();
+            });
+        }
+
+        // Initialize app
+        function init() {
+            setupEventListeners();
+            startTimers();
+
+            if (state.apiKey && state.stopId) {
+                fetchDepartures();
+            } else {
+                showNoConfig();
+            }
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
