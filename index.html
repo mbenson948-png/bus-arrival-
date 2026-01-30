@@ -493,9 +493,10 @@
         // Configuration
         const CONFIG = {
             API_BASE: 'https://api.transport.nsw.gov.au/v1/tp',
-            // CORS proxies - thingproxy forwards headers, corsproxy works on localhost
+            // CORS proxies that forward headers
             CORS_PROXIES: [
-                { url: 'https://thingproxy.freeboard.io/fetch/', encode: false },
+                { url: 'https://cors.eu.org/', encode: false },
+                { url: 'https://yacdn.org/proxy/', encode: false },
                 { url: 'https://corsproxy.io/?', encode: false }
             ],
             DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsSWlIak1rTVFIdXRSTU41bGNuWTZBTEVKS3haTFFTQ3VYbnI2UmFCM2dZIiwiaWF0IjoxNzY5NzUxMDcxfQ.YoCUHusmAVjNklnQqlkVVCHK1VaLfcEliuoQ0zm_MlU',
