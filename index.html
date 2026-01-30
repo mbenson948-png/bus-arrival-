@@ -493,10 +493,11 @@
         // Configuration
         const CONFIG = {
             API_BASE: 'https://api.transport.nsw.gov.au/v1/tp',
+            // CORS proxies that forward headers
             CORS_PROXIES: [
-                { url: 'https://corsproxy.io/?', encode: false },
-                { url: 'https://api.allorigins.win/raw?url=', encode: true },
-                { url: 'https://api.codetabs.com/v1/proxy?quest=', encode: true }
+                { url: 'https://proxy.cors.sh/', encode: false, addHeaders: true },
+                { url: 'https://corsproxy.io/?', encode: false, addHeaders: false },
+                { url: 'https://api.allorigins.win/raw?url=', encode: true, addHeaders: false }
             ],
             DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsSWlIak1rTVFIdXRSTU41bGNuWTZBTEVKS3haTFFTQ3VYbnI2UmFCM2dZIiwiaWF0IjoxNzY5NzUxMDcxfQ.YoCUHusmAVjNklnQqlkVVCHK1VaLfcEliuoQ0zm_MlU',
             REFRESH_INTERVAL: 60000,
@@ -596,12 +597,21 @@
                     console.log('Trying proxy:', proxy.url);
                     console.log('Proxy URL:', proxyUrl);
 
-                    const response = await fetch(proxyUrl, {
-                        headers: {
-                            'Authorization': `apikey ${apiKey}`,
-                            'Accept': 'application/json'
-                        }
-                    });
+                    // Build headers based on proxy type
+                    const headers = {
+                        'Accept': 'application/json'
+                    };
+
+                    // proxy.cors.sh uses x-cors-api-key for their service
+                    // and forwards other headers to target
+                    if (proxy.addHeaders) {
+                        headers['Authorization'] = `apikey ${apiKey}`;
+                        headers['x-cors-api-key'] = 'live_f89dc4d7bd09d24e72a8a7f4b0c2e5a1c6b3d8e9f2a5'; // public demo key
+                    } else {
+                        headers['Authorization'] = `apikey ${apiKey}`;
+                    }
+
+                    const response = await fetch(proxyUrl, { headers });
 
                     console.log('Proxy response status:', response.status);
 
