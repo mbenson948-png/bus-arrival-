@@ -559,7 +559,11 @@
 
         // API fetch helper with CORS proxy fallback
         async function apiFetch(endpoint, apiKey) {
+            // Add API key to URL as query param (some proxies don't forward headers)
+            const separator = endpoint.includes('?') ? '&' : '?';
+            const apiUrlWithKey = `${CONFIG.API_BASE}${endpoint}${separator}apikey=${encodeURIComponent(apiKey)}`;
             const apiUrl = `${CONFIG.API_BASE}${endpoint}`;
+
             let lastError = null;
             let lastStatus = null;
 
@@ -567,9 +571,9 @@
             console.log('Endpoint:', endpoint);
             console.log('Full URL:', apiUrl);
 
-            // Try direct fetch first
+            // Try direct fetch first (with header auth)
             try {
-                console.log('Attempting direct fetch...');
+                console.log('Attempting direct fetch with header auth...');
                 const response = await fetch(apiUrl, {
                     headers: {
                         'Authorization': `apikey ${apiKey}`,
@@ -591,47 +595,64 @@
             // Try CORS proxies
             for (const proxy of CONFIG.CORS_PROXIES) {
                 try {
+                    // For proxies that don't forward headers, use URL with embedded API key
+                    const targetUrl = proxy.addHeaders ? apiUrl : apiUrlWithKey;
                     const proxyUrl = proxy.encode
-                        ? proxy.url + encodeURIComponent(apiUrl)
-                        : proxy.url + apiUrl;
+                        ? proxy.url + encodeURIComponent(targetUrl)
+                        : proxy.url + targetUrl;
+
                     console.log('Trying proxy:', proxy.url);
-                    console.log('Proxy URL:', proxyUrl);
+                    console.log('Proxy URL:', proxyUrl.substring(0, 150) + '...');
 
-                    // Build headers based on proxy type
-                    const headers = {
-                        'Accept': 'application/json'
-                    };
+                    // Build headers
+                    const headers = { 'Accept': 'application/json' };
 
-                    // proxy.cors.sh uses x-cors-api-key for their service
-                    // and forwards other headers to target
+                    // Add auth header (may be forwarded by some proxies)
                     if (proxy.addHeaders) {
                         headers['Authorization'] = `apikey ${apiKey}`;
-                        headers['x-cors-api-key'] = 'live_f89dc4d7bd09d24e72a8a7f4b0c2e5a1c6b3d8e9f2a5'; // public demo key
-                    } else {
-                        headers['Authorization'] = `apikey ${apiKey}`;
+                        // proxy.cors.sh specific header
+                        headers['x-cors-api-key'] = 'live_f89dc4d7bd09d24e72a8a7f4b0c2e5a1c6b3d8e9f2a5';
                     }
 
-                    const response = await fetch(proxyUrl, { headers });
+                    const response = await fetch(proxyUrl, {
+                        headers,
+                        mode: 'cors'
+                    });
 
                     console.log('Proxy response status:', response.status);
 
                     if (response.ok) {
                         const text = await response.text();
                         console.log('Proxy response length:', text.length);
+                        console.log('Response preview:', text.substring(0, 100));
 
                         // Check if it's valid JSON
                         try {
                             const data = JSON.parse(text);
-                            console.log('Proxy successful:', proxy.url);
-                            return data;
+                            // Check if it looks like TfNSW API response
+                            if (data.locations || data.stopEvents || data.version) {
+                                console.log('Proxy successful with valid TfNSW data:', proxy.url);
+                                return data;
+                            } else if (data.error) {
+                                console.log('API returned error:', data.error);
+                                lastError = new Error(data.error.message || 'API error');
+                            } else {
+                                console.log('Unexpected response structure:', Object.keys(data));
+                                // Still return it - might be valid
+                                return data;
+                            }
                         } catch (parseError) {
                             console.log('Response is not valid JSON:', text.substring(0, 200));
-                            lastError = new Error('Invalid JSON response from proxy');
+                            lastError = new Error('Invalid JSON response');
                         }
                     } else {
                         lastStatus = response.status;
-                        const errorText = await response.text();
-                        console.log('Proxy error response:', errorText.substring(0, 200));
+                        try {
+                            const errorText = await response.text();
+                            console.log('Proxy error response:', errorText.substring(0, 200));
+                        } catch (e) {
+                            console.log('Could not read error response');
+                        }
                     }
                 } catch (proxyError) {
                     lastError = proxyError;
