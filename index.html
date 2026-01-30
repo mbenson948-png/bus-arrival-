@@ -220,6 +220,7 @@
             display: none;
             flex-direction: column;
             padding: 20px;
+            overflow-y: auto;
         }
 
         #settings-overlay.visible {
@@ -232,22 +233,22 @@
             text-transform: uppercase;
             border-bottom: 4px solid #000000;
             padding-bottom: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
 
         .form-group label {
             display: block;
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: bold;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px;
             font-size: 1rem;
@@ -256,6 +257,19 @@
             background-color: #FFFFFF;
             color: #000000;
             outline: none;
+            border-radius: 0;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        .form-group select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
         }
 
         .form-group input::placeholder {
@@ -263,15 +277,34 @@
             opacity: 0.5;
         }
 
+        .form-group input:disabled, .form-group select:disabled {
+            opacity: 0.5;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-row input {
+            flex: 1;
+        }
+
+        .input-row .btn {
+            flex: 0 0 auto;
+            padding: 12px 16px;
+        }
+
         .btn-row {
             display: flex;
             gap: 12px;
             margin-top: auto;
+            padding-top: 16px;
         }
 
         .btn {
             flex: 1;
-            padding: 16px;
+            padding: 14px;
             font-size: 1rem;
             font-weight: bold;
             text-transform: uppercase;
@@ -287,6 +320,57 @@
         .btn-secondary {
             background-color: #FFFFFF;
             color: #000000;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Status Messages */
+        .status-msg {
+            padding: 10px;
+            font-size: 0.875rem;
+            font-weight: bold;
+            text-align: center;
+            border: 3px solid #000000;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .status-msg.visible {
+            display: block;
+        }
+
+        .status-msg.success {
+            background-color: #FFFFFF;
+            color: #000000;
+        }
+
+        .status-msg.error {
+            background-color: #000000;
+            color: #FFFFFF;
+        }
+
+        .status-msg.loading {
+            background-color: #FFFFFF;
+            color: #000000;
+        }
+
+        /* Section divider */
+        .section-divider {
+            border-top: 2px solid #000000;
+            margin: 16px 0;
+            padding-top: 16px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            opacity: 0.7;
         }
 
         /* No Config State */
@@ -314,14 +398,46 @@
     <!-- Settings Overlay -->
     <div id="settings-overlay">
         <h2>Settings</h2>
+
+        <!-- Status Message -->
+        <div id="settings-status" class="status-msg"></div>
+
+        <!-- API Key Section -->
         <div class="form-group">
             <label for="api-key">TfNSW API Key</label>
-            <input type="text" id="api-key" placeholder="Enter your API key">
+            <div class="input-row">
+                <input type="text" id="api-key" placeholder="Enter your API key">
+                <button class="btn btn-secondary" id="test-btn">Test</button>
+            </div>
         </div>
+
+        <div class="section-divider">
+            <div class="section-title">Find Your Bus Stop</div>
+        </div>
+
+        <!-- Suburb Search -->
         <div class="form-group">
-            <label for="stop-id">Stop ID (6-7 digits)</label>
-            <input type="text" id="stop-id" placeholder="e.g., 2000105" maxlength="7" pattern="[0-9]{6,7}">
+            <label for="suburb-input">Search Suburb or Street</label>
+            <div class="input-row">
+                <input type="text" id="suburb-input" placeholder="e.g., Chatswood, George St">
+                <button class="btn btn-secondary" id="search-btn">Search</button>
+            </div>
         </div>
+
+        <!-- Stop Dropdown -->
+        <div class="form-group">
+            <label for="stop-select">Select Bus Stop</label>
+            <select id="stop-select" disabled>
+                <option value="">-- Search for stops first --</option>
+            </select>
+        </div>
+
+        <!-- Selected Stop Display -->
+        <div class="form-group">
+            <label>Selected Stop ID</label>
+            <input type="text" id="stop-id" readonly placeholder="Will be filled when you select a stop">
+        </div>
+
         <div class="btn-row">
             <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
             <button class="btn btn-primary" id="save-btn">Save</button>
@@ -343,7 +459,7 @@
 
         <!-- No Configuration State -->
         <div id="no-config">
-            <p>Enter Stop ID to start</p>
+            <p>Select a bus stop to start</p>
             <button class="btn btn-primary" id="config-btn">Configure</button>
         </div>
 
@@ -376,24 +492,25 @@
     <script>
         // Configuration
         const CONFIG = {
-            API_BASE: 'https://api.transport.nsw.gov.au/v1/tp/departure_mon',
-            // Multiple CORS proxy options for fallback
+            API_BASE: 'https://api.transport.nsw.gov.au/v1/tp',
             CORS_PROXIES: [
                 'https://corsproxy.io/?',
                 'https://api.codetabs.com/v1/proxy?quest='
             ],
             DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3WFd4ZS1RX096RllLaWs4XzRXN3ZyZnhmTHVWWllQellFSlRDYTBsVmJnIiwiaWF0IjoxNzY5NzQ5ODY4fQ.58E1f6Al3k94VGJilfZBE6QjTQVfmcZ1QRbmi8n8NDQ',
-            REFRESH_INTERVAL: 60000, // 1 minute
-            FLASH_INTERVAL: 300000,  // 5 minutes
-            FLASH_DURATION: 150      // milliseconds per flash phase
+            REFRESH_INTERVAL: 60000,
+            FLASH_INTERVAL: 300000,
+            FLASH_DURATION: 150
         };
 
         // State
         let state = {
             apiKey: localStorage.getItem('tfnsw_api_key') || CONFIG.DEFAULT_API_KEY,
             stopId: localStorage.getItem('tfnsw_stop_id') || '',
+            stopName: localStorage.getItem('tfnsw_stop_name') || '',
             refreshTimer: null,
-            flashTimer: null
+            flashTimer: null,
+            foundStops: []
         };
 
         // DOM Elements
@@ -404,8 +521,13 @@
             cancelBtn: document.getElementById('cancel-btn'),
             saveBtn: document.getElementById('save-btn'),
             configBtn: document.getElementById('config-btn'),
+            testBtn: document.getElementById('test-btn'),
+            searchBtn: document.getElementById('search-btn'),
             apiKeyInput: document.getElementById('api-key'),
+            suburbInput: document.getElementById('suburb-input'),
+            stopSelect: document.getElementById('stop-select'),
             stopIdInput: document.getElementById('stop-id'),
+            settingsStatus: document.getElementById('settings-status'),
             loading: document.getElementById('loading'),
             error: document.getElementById('error'),
             noConfig: document.getElementById('no-config'),
@@ -422,6 +544,193 @@
             'FULL': 'Full',
             'UNKNOWN': 'Unknown'
         };
+
+        // Show status message in settings
+        function showSettingsStatus(message, type) {
+            elements.settingsStatus.textContent = message;
+            elements.settingsStatus.className = `status-msg visible ${type}`;
+        }
+
+        function hideSettingsStatus() {
+            elements.settingsStatus.className = 'status-msg';
+        }
+
+        // API fetch helper with CORS proxy fallback
+        async function apiFetch(endpoint, apiKey) {
+            const apiUrl = `${CONFIG.API_BASE}${endpoint}`;
+            let response = null;
+            let lastError = null;
+
+            // Try direct fetch first
+            try {
+                response = await fetch(apiUrl, {
+                    headers: {
+                        'Authorization': `apikey ${apiKey}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (directError) {
+                console.log('Direct fetch failed:', directError.message);
+            }
+
+            // Try CORS proxies
+            for (const proxy of CONFIG.CORS_PROXIES) {
+                try {
+                    const proxyUrl = proxy.includes('codetabs')
+                        ? proxy + encodeURIComponent(apiUrl)
+                        : proxy + apiUrl;
+                    console.log('Trying proxy:', proxy);
+
+                    response = await fetch(proxyUrl, {
+                        headers: {
+                            'Authorization': `apikey ${apiKey}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        console.log('Proxy successful:', proxy);
+                        return await response.json();
+                    }
+                } catch (proxyError) {
+                    lastError = proxyError;
+                    console.log('Proxy failed:', proxy, proxyError.message);
+                }
+            }
+
+            throw lastError || new Error('All fetch attempts failed');
+        }
+
+        // Test API connection
+        async function testConnection() {
+            const apiKey = elements.apiKeyInput.value.trim();
+            if (!apiKey) {
+                showSettingsStatus('Please enter an API key', 'error');
+                return;
+            }
+
+            elements.testBtn.disabled = true;
+            showSettingsStatus('Testing connection...', 'loading');
+
+            try {
+                // Use stop_finder with a known location to test
+                const params = new URLSearchParams({
+                    outputFormat: 'rapidJSON',
+                    type_sf: 'any',
+                    name_sf: 'Sydney',
+                    coordOutputFormat: 'EPSG:4326',
+                    TfNSWSF: 'true',
+                    version: '10.2.1.42'
+                });
+
+                await apiFetch(`/stop_finder?${params}`, apiKey);
+                showSettingsStatus('Connection successful!', 'success');
+            } catch (error) {
+                console.error('Connection test failed:', error);
+                showSettingsStatus('Connection failed: ' + error.message, 'error');
+            } finally {
+                elements.testBtn.disabled = false;
+            }
+        }
+
+        // Search for stops by suburb/location
+        async function searchStops() {
+            const searchTerm = elements.suburbInput.value.trim();
+            const apiKey = elements.apiKeyInput.value.trim();
+
+            if (!searchTerm) {
+                showSettingsStatus('Please enter a suburb or street name', 'error');
+                return;
+            }
+
+            if (!apiKey) {
+                showSettingsStatus('Please enter an API key first', 'error');
+                return;
+            }
+
+            elements.searchBtn.disabled = true;
+            elements.stopSelect.disabled = true;
+            showSettingsStatus('Searching for stops...', 'loading');
+
+            try {
+                const params = new URLSearchParams({
+                    outputFormat: 'rapidJSON',
+                    type_sf: 'any',
+                    name_sf: searchTerm,
+                    coordOutputFormat: 'EPSG:4326',
+                    TfNSWSF: 'true',
+                    version: '10.2.1.42'
+                });
+
+                const data = await apiFetch(`/stop_finder?${params}`, apiKey);
+
+                // Filter for bus stops only
+                const stops = (data.locations || []).filter(loc => {
+                    const isBusStop = loc.type === 'stop' || loc.type === 'platform';
+                    const hasBusMode = loc.productClasses && loc.productClasses.includes(5);
+                    return isBusStop || hasBusMode;
+                });
+
+                if (stops.length === 0) {
+                    showSettingsStatus('No bus stops found. Try a different search.', 'error');
+                    elements.stopSelect.innerHTML = '<option value="">-- No stops found --</option>';
+                    state.foundStops = [];
+                } else {
+                    state.foundStops = stops;
+                    populateStopDropdown(stops);
+                    showSettingsStatus(`Found ${stops.length} bus stop(s)`, 'success');
+                    elements.stopSelect.disabled = false;
+                }
+            } catch (error) {
+                console.error('Stop search failed:', error);
+                showSettingsStatus('Search failed: ' + error.message, 'error');
+                state.foundStops = [];
+            } finally {
+                elements.searchBtn.disabled = false;
+            }
+        }
+
+        // Populate stop dropdown
+        function populateStopDropdown(stops) {
+            elements.stopSelect.innerHTML = '<option value="">-- Select a stop --</option>';
+
+            stops.forEach((stop, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+
+                // Build display name
+                const name = stop.disassembledName || stop.name || 'Unknown Stop';
+                const parent = stop.parent?.name || '';
+                const id = stop.id || '';
+
+                option.textContent = parent ? `${name} (${parent})` : name;
+                option.dataset.stopId = id;
+                option.dataset.stopName = name;
+
+                elements.stopSelect.appendChild(option);
+            });
+        }
+
+        // Handle stop selection
+        function onStopSelected() {
+            const selectedIndex = elements.stopSelect.value;
+
+            if (selectedIndex === '' || !state.foundStops[selectedIndex]) {
+                elements.stopIdInput.value = '';
+                return;
+            }
+
+            const stop = state.foundStops[selectedIndex];
+            const stopId = stop.id || '';
+            const stopName = stop.disassembledName || stop.name || '';
+
+            elements.stopIdInput.value = stopId;
+            state.stopId = stopId;
+            state.stopName = stopName;
+        }
 
         // Flash refresh for e-ink anti-ghosting
         function performFlashRefresh() {
@@ -453,7 +762,6 @@
             const departure = new Date(now);
             departure.setHours(hours, minutes, 0, 0);
 
-            // Handle next day arrivals
             if (departure < now) {
                 departure.setDate(departure.getDate() + 1);
             }
@@ -483,7 +791,6 @@
             const transportation = stopEvent.transportation || {};
             const routeNumber = transportation.number || transportation.disassembledName || 'N/A';
 
-            // Get departure time - prefer real-time, fallback to scheduled
             let departureTime;
             if (stopEvent.departureTimeEstimated) {
                 const estimated = new Date(stopEvent.departureTimeEstimated);
@@ -531,63 +838,7 @@
             });
 
             try {
-                // Build the full API URL
-                const apiUrl = `${CONFIG.API_BASE}?${params}`;
-                let response = null;
-                let lastError = null;
-
-                // Try direct fetch first
-                try {
-                    response = await fetch(apiUrl, {
-                        headers: {
-                            'Authorization': `apikey ${state.apiKey}`,
-                            'Accept': 'application/json'
-                        }
-                    });
-                    if (!response.ok && response.status === 0) {
-                        throw new Error('CORS blocked');
-                    }
-                } catch (directError) {
-                    console.log('Direct fetch failed:', directError.message);
-                    response = null;
-                }
-
-                // If direct failed, try CORS proxies
-                if (!response || !response.ok) {
-                    for (const proxy of CONFIG.CORS_PROXIES) {
-                        try {
-                            // corsproxy.io format: https://corsproxy.io/?URL (not encoded)
-                            // codetabs format: uses quest= with encoded URL
-                            const proxyUrl = proxy.includes('codetabs')
-                                ? proxy + encodeURIComponent(apiUrl)
-                                : proxy + apiUrl;
-                            console.log('Trying proxy:', proxyUrl);
-                            response = await fetch(proxyUrl, {
-                                headers: {
-                                    'Authorization': `apikey ${state.apiKey}`,
-                                    'Accept': 'application/json'
-                                }
-                            });
-                            if (response.ok) {
-                                console.log('Proxy successful:', proxy);
-                                break;
-                            }
-                        } catch (proxyError) {
-                            lastError = proxyError;
-                            console.log('Proxy failed:', proxy, proxyError.message);
-                        }
-                    }
-                }
-
-                if (!response) {
-                    throw lastError || new Error('All fetch attempts failed');
-                }
-
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status}`);
-                }
-
-                const data = await response.json();
+                const data = await apiFetch(`/departure_mon?${params}`, state.apiKey);
 
                 if (!data.stopEvents || data.stopEvents.length === 0) {
                     showError('No departures found');
@@ -617,7 +868,6 @@
             hideAllStates();
             elements.arrivals.style.display = 'flex';
 
-            // Primary arrival
             const primary = document.getElementById('arrival-1');
             if (departures[0]) {
                 primary.querySelector('.route').textContent = departures[0].route;
@@ -628,7 +878,6 @@
                 primary.style.display = 'none';
             }
 
-            // Secondary arrivals
             for (let i = 1; i <= 2; i++) {
                 const secondary = document.getElementById(`arrival-${i + 1}`);
                 if (departures[i]) {
@@ -681,6 +930,10 @@
         function openSettings() {
             elements.apiKeyInput.value = state.apiKey;
             elements.stopIdInput.value = state.stopId;
+            elements.suburbInput.value = '';
+            elements.stopSelect.innerHTML = '<option value="">-- Search for stops first --</option>';
+            elements.stopSelect.disabled = true;
+            hideSettingsStatus();
             elements.settingsOverlay.classList.add('visible');
         }
 
@@ -692,11 +945,13 @@
             const apiKey = elements.apiKeyInput.value.trim();
             const stopId = elements.stopIdInput.value.trim();
 
-            if (!apiKey || !stopId) {
+            if (!apiKey) {
+                showSettingsStatus('Please enter an API key', 'error');
                 return;
             }
 
-            if (!/^\d{6,7}$/.test(stopId)) {
+            if (!stopId) {
+                showSettingsStatus('Please select a bus stop', 'error');
                 return;
             }
 
@@ -704,6 +959,7 @@
             state.stopId = stopId;
             localStorage.setItem('tfnsw_api_key', apiKey);
             localStorage.setItem('tfnsw_stop_id', stopId);
+            localStorage.setItem('tfnsw_stop_name', state.stopName);
 
             closeSettings();
             fetchDepartures();
@@ -711,14 +967,10 @@
 
         // Initialize timers
         function startTimers() {
-            // Clear existing timers
             if (state.refreshTimer) clearInterval(state.refreshTimer);
             if (state.flashTimer) clearInterval(state.flashTimer);
 
-            // Data refresh timer
             state.refreshTimer = setInterval(fetchDepartures, CONFIG.REFRESH_INTERVAL);
-
-            // E-ink flash refresh timer
             state.flashTimer = setInterval(performFlashRefresh, CONFIG.FLASH_INTERVAL);
         }
 
@@ -728,13 +980,16 @@
             elements.cancelBtn.addEventListener('click', closeSettings);
             elements.saveBtn.addEventListener('click', saveSettings);
             elements.configBtn.addEventListener('click', openSettings);
+            elements.testBtn.addEventListener('click', testConnection);
+            elements.searchBtn.addEventListener('click', searchStops);
+            elements.stopSelect.addEventListener('change', onStopSelected);
 
-            // Allow Enter key in inputs
-            elements.stopIdInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') saveSettings();
+            // Enter key handlers
+            elements.suburbInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') searchStops();
             });
             elements.apiKeyInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') elements.stopIdInput.focus();
+                if (e.key === 'Enter') testConnection();
             });
         }
 
