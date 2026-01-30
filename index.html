@@ -494,10 +494,11 @@
         const CONFIG = {
             API_BASE: 'https://api.transport.nsw.gov.au/v1/tp',
             CORS_PROXIES: [
-                'https://corsproxy.io/?',
-                'https://api.codetabs.com/v1/proxy?quest='
+                { url: 'https://corsproxy.io/?', encode: false },
+                { url: 'https://api.allorigins.win/raw?url=', encode: true },
+                { url: 'https://api.codetabs.com/v1/proxy?quest=', encode: true }
             ],
-            DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3WFd4ZS1RX096RllLaWs4XzRXN3ZyZnhmTHVWWllQellFSlRDYTBsVmJnIiwiaWF0IjoxNzY5NzQ5ODY4fQ.58E1f6Al3k94VGJilfZBE6QjTQVfmcZ1QRbmi8n8NDQ',
+            DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsSWlIak1rTVFIdXRSTU41bGNuWTZBTEVKS3haTFFTQ3VYbnI2UmFCM2dZIiwiaWF0IjoxNzY5NzUxMDcxfQ.YoCUHusmAVjNklnQqlkVVCHK1VaLfcEliuoQ0zm_MlU',
             REFRESH_INTERVAL: 60000,
             FLASH_INTERVAL: 300000,
             FLASH_DURATION: 150
@@ -558,50 +559,81 @@
         // API fetch helper with CORS proxy fallback
         async function apiFetch(endpoint, apiKey) {
             const apiUrl = `${CONFIG.API_BASE}${endpoint}`;
-            let response = null;
             let lastError = null;
+            let lastStatus = null;
+
+            console.log('=== API Fetch Start ===');
+            console.log('Endpoint:', endpoint);
+            console.log('Full URL:', apiUrl);
 
             // Try direct fetch first
             try {
-                response = await fetch(apiUrl, {
+                console.log('Attempting direct fetch...');
+                const response = await fetch(apiUrl, {
                     headers: {
                         'Authorization': `apikey ${apiKey}`,
                         'Accept': 'application/json'
                     }
                 });
+                console.log('Direct fetch status:', response.status);
                 if (response.ok) {
-                    return await response.json();
+                    const data = await response.json();
+                    console.log('Direct fetch successful!');
+                    return data;
                 }
+                lastStatus = response.status;
             } catch (directError) {
-                console.log('Direct fetch failed:', directError.message);
+                console.log('Direct fetch error:', directError.message);
+                lastError = directError;
             }
 
             // Try CORS proxies
             for (const proxy of CONFIG.CORS_PROXIES) {
                 try {
-                    const proxyUrl = proxy.includes('codetabs')
-                        ? proxy + encodeURIComponent(apiUrl)
-                        : proxy + apiUrl;
-                    console.log('Trying proxy:', proxy);
+                    const proxyUrl = proxy.encode
+                        ? proxy.url + encodeURIComponent(apiUrl)
+                        : proxy.url + apiUrl;
+                    console.log('Trying proxy:', proxy.url);
+                    console.log('Proxy URL:', proxyUrl);
 
-                    response = await fetch(proxyUrl, {
+                    const response = await fetch(proxyUrl, {
                         headers: {
                             'Authorization': `apikey ${apiKey}`,
                             'Accept': 'application/json'
                         }
                     });
 
+                    console.log('Proxy response status:', response.status);
+
                     if (response.ok) {
-                        console.log('Proxy successful:', proxy);
-                        return await response.json();
+                        const text = await response.text();
+                        console.log('Proxy response length:', text.length);
+
+                        // Check if it's valid JSON
+                        try {
+                            const data = JSON.parse(text);
+                            console.log('Proxy successful:', proxy.url);
+                            return data;
+                        } catch (parseError) {
+                            console.log('Response is not valid JSON:', text.substring(0, 200));
+                            lastError = new Error('Invalid JSON response from proxy');
+                        }
+                    } else {
+                        lastStatus = response.status;
+                        const errorText = await response.text();
+                        console.log('Proxy error response:', errorText.substring(0, 200));
                     }
                 } catch (proxyError) {
                     lastError = proxyError;
-                    console.log('Proxy failed:', proxy, proxyError.message);
+                    console.log('Proxy error:', proxy.url, proxyError.message);
                 }
             }
 
-            throw lastError || new Error('All fetch attempts failed');
+            console.log('=== All attempts failed ===');
+            const errorMsg = lastStatus
+                ? `API returned status ${lastStatus}`
+                : (lastError?.message || 'All fetch attempts failed');
+            throw new Error(errorMsg);
         }
 
         // Test API connection
@@ -613,7 +645,7 @@
             }
 
             elements.testBtn.disabled = true;
-            showSettingsStatus('Testing connection...', 'loading');
+            showSettingsStatus('Testing connection... (check browser console for details)', 'loading');
 
             try {
                 // Use stop_finder with a known location to test
@@ -626,11 +658,16 @@
                     version: '10.2.1.42'
                 });
 
-                await apiFetch(`/stop_finder?${params}`, apiKey);
-                showSettingsStatus('Connection successful!', 'success');
+                const data = await apiFetch(`/stop_finder?${params}`, apiKey);
+
+                if (data && data.locations) {
+                    showSettingsStatus(`Connection successful! Found ${data.locations.length} locations.`, 'success');
+                } else {
+                    showSettingsStatus('Connection OK but unexpected response format', 'success');
+                }
             } catch (error) {
                 console.error('Connection test failed:', error);
-                showSettingsStatus('Connection failed: ' + error.message, 'error');
+                showSettingsStatus('Failed: ' + error.message + ' (see console F12)', 'error');
             } finally {
                 elements.testBtn.disabled = false;
             }
