@@ -343,7 +343,7 @@
 
         <!-- No Configuration State -->
         <div id="no-config">
-            <p>Configure API Key and Stop ID to start</p>
+            <p>Enter Stop ID to start</p>
             <button class="btn btn-primary" id="config-btn">Configure</button>
         </div>
 
@@ -377,6 +377,12 @@
         // Configuration
         const CONFIG = {
             API_BASE: 'https://api.transport.nsw.gov.au/v1/tp/departure_mon',
+            // Multiple CORS proxy options for fallback
+            CORS_PROXIES: [
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ],
+            DEFAULT_API_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI3WFd4ZS1RX096RllLaWs4XzRXN3ZyZnhmTHVWWllQellFSlRDYTBsVmJnIiwiaWF0IjoxNzY5NzQ5ODY4fQ.58E1f6Al3k94VGJilfZBE6QjTQVfmcZ1QRbmi8n8NDQ',
             REFRESH_INTERVAL: 60000, // 1 minute
             FLASH_INTERVAL: 300000,  // 5 minutes
             FLASH_DURATION: 150      // milliseconds per flash phase
@@ -384,7 +390,7 @@
 
         // State
         let state = {
-            apiKey: localStorage.getItem('tfnsw_api_key') || '',
+            apiKey: localStorage.getItem('tfnsw_api_key') || CONFIG.DEFAULT_API_KEY,
             stopId: localStorage.getItem('tfnsw_stop_id') || '',
             refreshTimer: null,
             flashTimer: null
@@ -525,12 +531,57 @@
             });
 
             try {
-                const response = await fetch(`${CONFIG.API_BASE}?${params}`, {
-                    headers: {
-                        'Authorization': `apikey ${state.apiKey}`,
-                        'Accept': 'application/json'
+                // Build the full API URL
+                const apiUrl = `${CONFIG.API_BASE}?${params}`;
+                let response = null;
+                let lastError = null;
+
+                // Try direct fetch first
+                try {
+                    response = await fetch(apiUrl, {
+                        headers: {
+                            'Authorization': `apikey ${state.apiKey}`,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    if (!response.ok && response.status === 0) {
+                        throw new Error('CORS blocked');
                     }
-                });
+                } catch (directError) {
+                    console.log('Direct fetch failed:', directError.message);
+                    response = null;
+                }
+
+                // If direct failed, try CORS proxies
+                if (!response || !response.ok) {
+                    for (const proxy of CONFIG.CORS_PROXIES) {
+                        try {
+                            // corsproxy.io format: https://corsproxy.io/?URL (not encoded)
+                            // codetabs format: uses quest= with encoded URL
+                            const proxyUrl = proxy.includes('codetabs')
+                                ? proxy + encodeURIComponent(apiUrl)
+                                : proxy + apiUrl;
+                            console.log('Trying proxy:', proxyUrl);
+                            response = await fetch(proxyUrl, {
+                                headers: {
+                                    'Authorization': `apikey ${state.apiKey}`,
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            if (response.ok) {
+                                console.log('Proxy successful:', proxy);
+                                break;
+                            }
+                        } catch (proxyError) {
+                            lastError = proxyError;
+                            console.log('Proxy failed:', proxy, proxyError.message);
+                        }
+                    }
+                }
+
+                if (!response) {
+                    throw lastError || new Error('All fetch attempts failed');
+                }
 
                 if (!response.ok) {
                     throw new Error(`API Error: ${response.status}`);
