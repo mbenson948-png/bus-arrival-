@@ -448,7 +448,7 @@
 
             apiRequest(endpoint, function(err, data) {
                 hide('loading');
-                console.log('Departure response:', err, data);
+                console.log('Departure response:', err, JSON.stringify(data, null, 2));
 
                 if (err) {
                     console.log('Error fetching departures:', err);
@@ -457,12 +457,22 @@
                     return;
                 }
 
+                // Log all keys in response
+                console.log('Response keys:', Object.keys(data));
+
                 if (!data.stopEvents || data.stopEvents.length === 0) {
-                    console.log('No stopEvents in response:', data);
-                    document.getElementById('error').innerHTML = 'NO BUSES FOUND';
+                    console.log('No stopEvents found. Response has:', Object.keys(data));
+                    // Check if there's an error message
+                    if (data.ErrorDetails) {
+                        document.getElementById('error').innerHTML = data.ErrorDetails.Message || 'API ERROR';
+                    } else {
+                        document.getElementById('error').innerHTML = 'NO BUSES FOUND';
+                    }
                     show('error');
                     return;
                 }
+
+                console.log('Found', data.stopEvents.length, 'departures');
 
                 var departures = [];
                 for (var i = 0; i < Math.min(3, data.stopEvents.length); i++) {
