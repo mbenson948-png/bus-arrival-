@@ -22,6 +22,7 @@ var path = require('path');
 var PORT = process.env.PORT || 3000;
 var API_HOST = 'api.transport.nsw.gov.au';
 var API_BASE = '/v1/tp';
+var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsSWlIak1rTVFIdXRSTU41bGNuWTZBTEVKS3haTFFTQ3VYbnI2UmFCM2dZIiwiaWF0IjoxNzY5NzUxMDcxfQ.YoCUHusmAVjNklnQqlkVVCHK1VaLfcEliuoQ0zm_MlU';
 
 // Serve static files
 function serveStatic(res, filePath, contentType) {
@@ -38,15 +39,13 @@ function serveStatic(res, filePath, contentType) {
 
 // Proxy API request to TfNSW
 function proxyApi(req, res, apiPath) {
-    var apiKey = req.headers['x-api-key'] || '';
-
     var options = {
         hostname: API_HOST,
         port: 443,
         path: API_BASE + apiPath,
         method: 'GET',
         headers: {
-            'Authorization': 'apikey ' + apiKey,
+            'Authorization': 'apikey ' + API_KEY,
             'Accept': 'application/json',
             'User-Agent': 'BusArrivals/1.0'
         }
