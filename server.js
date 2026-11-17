@@ -154,9 +154,14 @@ function getDepartures(stopId, callback) {
             // Get time
             let departureTime = event.departureTimeEstimated || event.departureTimePlanned;
             let minutes = 0;
+            let timeString = '';
+            let isRealtime = !!event.departureTimeEstimated;
+
             if (departureTime) {
                 const depDate = new Date(departureTime);
                 minutes = Math.round((depDate - now) / 60000);
+                // Format as HH:MM
+                timeString = ('0' + depDate.getHours()).slice(-2) + ':' + ('0' + depDate.getMinutes()).slice(-2);
             }
 
             // Mode names and keys for filtering
@@ -176,6 +181,8 @@ function getDepartures(stopId, callback) {
                 route: route,
                 destination: destination,
                 minutes: minutes,
+                time: timeString,
+                isRealtime: isRealtime,
                 mode: info.name,
                 modeCode: mode,
                 modeKey: info.key,
@@ -191,6 +198,13 @@ function getDepartures(stopId, callback) {
 
         callback(null, upcoming);
     });
+}
+
+// Get trip stops (for showing stops along the way)
+function getTripStops(journeyRef, callback) {
+    // The TfNSW API uses stop_sequence from the departure event
+    // For now, return a message that this feature needs the journey details
+    callback(null, { message: 'Journey details available in TripView app' });
 }
 
 // HTTP request handler
