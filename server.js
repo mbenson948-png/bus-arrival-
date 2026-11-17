@@ -1,109 +1,230 @@
 #!/usr/bin/env node
 /**
- * Simple Bus Arrivals Proxy Server
+ * Transport Departures Display - Server
  *
- * This server:
- * 1. Serves the static HTML file
- * 2. Proxies API requests to TfNSW (bypasses CORS)
- *
- * Usage:
- *   node server.js
- *   Then open: http://localhost:3000
- *
- * Or with custom port:
- *   PORT=8080 node server.js
+ * A simple proxy server for TfNSW API
+ * Run: node server.js
+ * Open: http://localhost:3000
  */
 
-var http = require('http');
-var https = require('https');
-var fs = require('fs');
-var path = require('path');
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+const url = require('url');
 
-var PORT = process.env.PORT || 3000;
-var API_HOST = 'api.transport.nsw.gov.au';
-var API_BASE = '/v1/tp';
-var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJQWFh6Q1I4OVd3bUlweTdldzZHbnRFcXV3azJXNW1NQXZ6d3BlX19aVkRVIiwiaWF0IjoxNzk0ODk4Mjg1fQ.V7JCyJnsy0AfhWytEZDVGDc_OEXavXHFScxX4E34WQM';
+// Configuration
+const PORT = process.env.PORT || 3000;
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJQWFh6Q1I4OVd3bUlweTdldzZHbnRFcXV3azJXNW1NQXZ6d3BlX19aVkRVIiwiaWF0IjoxNzk0ODk4Mjg1fQ.V7JCyJnsy0AfhWytEZDVGDc_OEXavXHFScxX4E34WQM';
 
-// Serve static files
-function serveStatic(res, filePath, contentType) {
-    fs.readFile(filePath, function(err, data) {
-        if (err) {
-            res.writeHead(404);
-            res.end('Not found');
-            return;
-        }
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(data);
-    });
-}
-
-// Proxy API request to TfNSW
-function proxyApi(req, res, apiPath) {
-    var options = {
-        hostname: API_HOST,
+// Make HTTPS request to TfNSW API
+function tfnswRequest(endpoint, callback) {
+    const options = {
+        hostname: 'api.transport.nsw.gov.au',
         port: 443,
-        path: API_BASE + apiPath,
+        path: endpoint,
         method: 'GET',
         headers: {
             'Authorization': 'apikey ' + API_KEY,
-            'Accept': 'application/json',
-            'User-Agent': 'BusArrivals/1.0'
+            'Accept': 'application/json'
         }
     };
 
-    console.log('Proxying: ' + options.path);
+    console.log('API Request:', endpoint);
 
-    var proxyReq = https.request(options, function(proxyRes) {
-        var data = '';
-
-        proxyRes.on('data', function(chunk) {
-            data += chunk;
-        });
-
-        proxyRes.on('end', function() {
-            res.writeHead(proxyRes.statusCode, {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            });
-            res.end(data);
+    const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                callback(null, json);
+            } catch (e) {
+                callback('Invalid JSON response', null);
+            }
         });
     });
 
-    proxyReq.on('error', function(err) {
-        console.error('Proxy error:', err.message);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+    req.on('error', (e) => {
+        console.error('API Error:', e.message);
+        callback(e.message, null);
     });
 
-    proxyReq.end();
+    req.end();
 }
 
-// Main request handler
-function handleRequest(req, res) {
-    var url = req.url;
-    console.log(req.method + ' ' + url);
+// Search for stops/stations
+function searchStops(query, callback) {
+    const endpoint = '/v1/tp/stop_finder?' +
+        'outputFormat=rapidJSON' +
+        '&type_sf=any' +
+        '&name_sf=' + encodeURIComponent(query) +
+        '&coordOutputFormat=EPSG:4326' +
+        '&TfNSWSF=true' +
+        '&version=10.2.1.42';
 
-    // Handle OPTIONS (CORS preflight)
-    if (req.method === 'OPTIONS') {
-        res.writeHead(200, {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-API-Key, Content-Type'
+    tfnswRequest(endpoint, (err, data) => {
+        if (err) return callback(err, null);
+
+        // Filter to stops only and extract useful info
+        const stops = (data.locations || [])
+            .filter(loc => loc.type === 'stop' || loc.type === 'platform' || loc.type === 'poi')
+            .map(loc => ({
+                id: loc.id,
+                name: loc.disassembledName || loc.name,
+                parent: loc.parent ? loc.parent.name : '',
+                type: loc.type,
+                modes: loc.productClasses || []
+            }));
+
+        callback(null, stops);
+    });
+}
+
+// Get departures for a stop
+function getDepartures(stopId, callback) {
+    const now = new Date();
+    const date = now.getFullYear() +
+        ('0' + (now.getMonth() + 1)).slice(-2) +
+        ('0' + now.getDate()).slice(-2);
+    const time = ('0' + now.getHours()).slice(-2) +
+        ('0' + now.getMinutes()).slice(-2);
+
+    const endpoint = '/v1/tp/departure_mon?' +
+        'outputFormat=rapidJSON' +
+        '&coordOutputFormat=EPSG:4326' +
+        '&mode=direct' +
+        '&type_dm=any' +
+        '&name_dm=' + encodeURIComponent(stopId) +
+        '&itdDate=' + date +
+        '&itdTime=' + time +
+        '&departureMonitorMacro=true' +
+        '&TfNSWDM=true' +
+        '&version=10.2.1.42';
+
+    tfnswRequest(endpoint, (err, data) => {
+        if (err) return callback(err, null);
+
+        console.log('Departure response keys:', Object.keys(data));
+
+        // Check for stopEvents
+        if (!data.stopEvents || data.stopEvents.length === 0) {
+            // Maybe try with the stop name from locations
+            if (data.locations && data.locations.length > 0) {
+                console.log('Got locations instead of departures, trying first location...');
+                const firstStop = data.locations[0];
+                if (firstStop.id && firstStop.id !== stopId) {
+                    // Retry with the proper ID
+                    return getDepartures(firstStop.id, callback);
+                }
+            }
+            return callback(null, []);
+        }
+
+        // Parse departures
+        const departures = data.stopEvents.map(event => {
+            const transport = event.transportation || {};
+            const route = transport.number || transport.disassembledName || '?';
+            const destination = transport.destination ? transport.destination.name : '';
+            const mode = transport.product ? transport.product.class : 0;
+
+            // Get time
+            let departureTime = event.departureTimeEstimated || event.departureTimePlanned;
+            let minutes = 0;
+            if (departureTime) {
+                const depDate = new Date(departureTime);
+                minutes = Math.round((depDate - now) / 60000);
+            }
+
+            // Mode names
+            const modeNames = {
+                1: 'Train',
+                4: 'Light Rail',
+                5: 'Bus',
+                9: 'Ferry',
+                11: 'School Bus'
+            };
+
+            return {
+                route: route,
+                destination: destination,
+                minutes: minutes,
+                mode: modeNames[mode] || 'Transport',
+                occupancy: event.occupancy || 'UNKNOWN',
+                platform: event.location ? event.location.platform : ''
+            };
         });
-        res.end();
+
+        // Sort by time and filter out past departures
+        const upcoming = departures
+            .filter(d => d.minutes >= -1)
+            .sort((a, b) => a.minutes - b.minutes);
+
+        callback(null, upcoming);
+    });
+}
+
+// HTTP request handler
+function handleRequest(req, res) {
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
+
+    console.log(req.method, pathname);
+
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    // API: Search stops
+    if (pathname === '/api/stops') {
+        const query = parsedUrl.query.q;
+        if (!query) {
+            res.writeHead(400, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({error: 'Missing query parameter q'}));
+            return;
+        }
+
+        searchStops(query, (err, stops) => {
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            if (err) {
+                res.end(JSON.stringify({error: err}));
+            } else {
+                res.end(JSON.stringify({stops: stops}));
+            }
+        });
         return;
     }
 
-    // API proxy
-    if (url.indexOf('/api/') === 0) {
-        var apiPath = url.substring(4); // Remove '/api'
-        proxyApi(req, res, apiPath);
+    // API: Get departures
+    if (pathname === '/api/departures') {
+        const stopId = parsedUrl.query.stopId;
+        if (!stopId) {
+            res.writeHead(400, {'Content-Type': 'application/json'});
+            res.end(JSON.stringify({error: 'Missing stopId parameter'}));
+            return;
+        }
+
+        getDepartures(stopId, (err, departures) => {
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            if (err) {
+                res.end(JSON.stringify({error: err}));
+            } else {
+                res.end(JSON.stringify({departures: departures}));
+            }
+        });
         return;
     }
 
-    // Static files
-    if (url === '/' || url === '/index.html') {
-        serveStatic(res, path.join(__dirname, 'index.html'), 'text/html');
+    // Serve index.html
+    if (pathname === '/' || pathname === '/index.html') {
+        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+            if (err) {
+                res.writeHead(404);
+                res.end('Not found');
+                return;
+            }
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end(data);
+        });
         return;
     }
 
@@ -112,21 +233,17 @@ function handleRequest(req, res) {
     res.end('Not found');
 }
 
-// Create and start server
-var server = http.createServer(handleRequest);
-
-server.listen(PORT, function() {
+// Start server
+const server = http.createServer(handleRequest);
+server.listen(PORT, () => {
     console.log('');
-    console.log('=================================');
-    console.log('  Bus Arrivals Server Running');
-    console.log('=================================');
+    console.log('================================');
+    console.log('  Transport Display Server');
+    console.log('================================');
     console.log('');
-    console.log('  Open in browser:');
-    console.log('  http://localhost:' + PORT);
+    console.log('  Open: http://localhost:' + PORT);
     console.log('');
-    console.log('  On Kindle, use your computer\'s IP:');
+    console.log('  For Kindle, use your IP:');
     console.log('  http://YOUR_IP:' + PORT);
-    console.log('');
-    console.log('  Press Ctrl+C to stop');
     console.log('');
 });

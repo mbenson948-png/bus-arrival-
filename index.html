@@ -3,90 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bus</title>
+    <title>Next Departure</title>
     <style>
-        /* Simple reset */
-        * {
-            margin: 0;
-            padding: 0;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: Arial, Helvetica, sans-serif;
             background: #fff;
             color: #000;
-            padding: 10px;
+            min-height: 100vh;
+            padding: 15px;
         }
 
         /* Header */
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 3px solid #000;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
             margin-bottom: 15px;
         }
-
-        .header h1 {
-            font-size: 24px;
-            font-weight: bold;
+        .header h1 { font-size: 20px; }
+        .gear {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #000;
+            text-align: center;
+            line-height: 31px;
+            font-size: 22px;
+            cursor: pointer;
         }
 
-        /* Primary bus - big display */
-        .bus-primary {
+        /* Main departure display */
+        .next-departure {
             border: 4px solid #000;
             padding: 20px;
-            margin-bottom: 15px;
             text-align: center;
+            margin-bottom: 15px;
         }
-
-        .bus-primary .route {
-            font-size: 72px;
+        .next-departure .mode {
+            font-size: 14px;
+            font-weight: bold;
+            background: #000;
+            color: #fff;
+            display: inline-block;
+            padding: 3px 10px;
+            margin-bottom: 10px;
+        }
+        .next-departure .route {
+            font-size: 64px;
             font-weight: bold;
             line-height: 1;
         }
-
-        .bus-primary .time {
+        .next-departure .destination {
+            font-size: 18px;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .next-departure .time {
             font-size: 48px;
             font-weight: bold;
             margin-top: 10px;
         }
-
-        .bus-primary .status {
-            font-size: 18px;
-            font-weight: bold;
+        .next-departure .platform {
+            font-size: 14px;
             margin-top: 10px;
-            padding: 5px 10px;
-            background: #000;
-            color: #fff;
-            display: inline-block;
         }
 
-        /* Secondary buses */
-        .bus-secondary {
-            border: 3px solid #000;
+        /* Later departures */
+        .later {
+            border: 2px solid #000;
             padding: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
-        .bus-secondary .route {
-            font-size: 36px;
-            font-weight: bold;
-            display: inline-block;
-            width: 100px;
-        }
-
-        .bus-secondary .time {
+        .later .info { flex: 1; }
+        .later .route {
             font-size: 28px;
             font-weight: bold;
-            display: inline-block;
         }
-
-        .bus-secondary .status {
-            font-size: 14px;
+        .later .destination {
+            font-size: 12px;
+        }
+        .later .time {
+            font-size: 24px;
             font-weight: bold;
-            margin-top: 5px;
-            padding: 3px 8px;
+            text-align: right;
+        }
+        .later .mode {
+            font-size: 10px;
             background: #000;
             color: #fff;
+            padding: 2px 6px;
             display: inline-block;
         }
 
@@ -95,208 +106,177 @@
             border-top: 2px solid #000;
             padding-top: 8px;
             margin-top: 15px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
         }
 
-        /* Messages */
-        .message {
-            font-size: 24px;
-            font-weight: bold;
+        /* Status messages */
+        .status {
             text-align: center;
             padding: 40px 20px;
+            font-size: 20px;
+            font-weight: bold;
             border: 3px solid #000;
         }
+        .hidden { display: none; }
 
-        /* Settings */
-        .settings {
+        /* Settings overlay */
+        .settings-overlay {
             display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: #fff;
             padding: 15px;
+            overflow-y: auto;
         }
-
-        .settings.show {
-            display: block;
-        }
-
-        .settings h2 {
-            font-size: 20px;
+        .settings-overlay.show { display: block; }
+        .settings-overlay h2 {
+            font-size: 18px;
             border-bottom: 3px solid #000;
             padding-bottom: 8px;
             margin-bottom: 15px;
         }
-
-        .settings label {
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
             display: block;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             margin-bottom: 5px;
-            margin-top: 15px;
         }
-
-        .settings input, .settings select {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             font-size: 16px;
             border: 2px solid #000;
-            background: #fff;
-            margin-bottom: 10px;
         }
-
-        .settings button {
+        .btn {
             padding: 12px 20px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
-            border: 3px solid #000;
+            border: 2px solid #000;
             background: #000;
             color: #fff;
-            margin-right: 10px;
-            margin-top: 15px;
+            cursor: pointer;
+            margin-right: 8px;
+            margin-top: 10px;
         }
-
-        .settings button.cancel {
+        .btn.secondary {
             background: #fff;
             color: #000;
         }
-
-        .gear {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 30px;
-            height: 30px;
-            border: 2px solid #000;
-            text-align: center;
-            line-height: 26px;
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .status-text {
-            font-size: 14px;
+        .msg {
+            padding: 10px;
+            font-size: 12px;
             font-weight: bold;
-            padding: 8px;
             border: 2px solid #000;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             text-align: center;
         }
+        .msg.error { background: #000; color: #fff; }
 
-        .hidden {
-            display: none;
+        /* Stop list */
+        .stop-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 2px solid #000;
+            margin-top: 10px;
         }
+        .stop-item {
+            padding: 10px;
+            border-bottom: 1px solid #000;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .stop-item:hover, .stop-item.selected {
+            background: #000;
+            color: #fff;
+        }
+        .stop-item .stop-name { font-weight: bold; }
+        .stop-item .stop-parent { font-size: 11px; }
     </style>
 </head>
 <body>
-    <!-- Settings Panel -->
-    <div id="settings" class="settings">
+    <!-- Settings -->
+    <div id="settings" class="settings-overlay">
         <h2>SETTINGS</h2>
+        <div id="msg" class="msg hidden"></div>
 
-        <div id="statusText" class="status-text hidden"></div>
+        <div class="form-group">
+            <label>SEARCH FOR YOUR STOP</label>
+            <input type="text" id="searchInput" placeholder="e.g. Chatswood, Central, Circular Quay">
+        </div>
+        <button class="btn" onclick="doSearch()">SEARCH</button>
 
-        <label>API KEY</label>
-        <input type="text" id="apiKey">
+        <div id="stopList" class="stop-list hidden"></div>
 
-        <label>STOP ID (6-7 digits)</label>
-        <input type="text" id="stopId" maxlength="7">
+        <div class="form-group" style="margin-top:20px;">
+            <label>SELECTED STOP</label>
+            <input type="text" id="selectedStop" readonly placeholder="Search and select a stop above">
+        </div>
 
-        <label>Or search by suburb:</label>
-        <input type="text" id="searchInput" placeholder="e.g. Chatswood">
-        <button type="button" onclick="searchStops()">SEARCH</button>
-
-        <label>Select stop:</label>
-        <select id="stopSelect" disabled>
-            <option value="">-- Search first --</option>
-        </select>
-
-        <div>
-            <button type="button" onclick="testApi()">TEST</button>
-            <button type="button" onclick="saveSettings()">SAVE</button>
-            <button type="button" class="cancel" onclick="closeSettings()">CANCEL</button>
+        <div style="margin-top:20px;">
+            <button class="btn" onclick="saveSettings()">SAVE</button>
+            <button class="btn secondary" onclick="closeSettings()">CANCEL</button>
         </div>
     </div>
 
     <!-- Main Display -->
     <div id="main">
         <div class="header">
-            <h1>BUS ARRIVALS</h1>
-            <div class="gear" onclick="openSettings()">&#9881;</div>
+            <h1>NEXT DEPARTURE</h1>
+            <div class="gear" onclick="openSettings()">⚙</div>
         </div>
 
-        <div id="content">
-            <div id="loading" class="message">LOADING...</div>
-            <div id="error" class="message hidden"></div>
-            <div id="noConfig" class="message hidden">TAP GEAR TO CONFIGURE</div>
+        <div id="loading" class="status">LOADING...</div>
+        <div id="error" class="status hidden"></div>
+        <div id="noConfig" class="status hidden">TAP ⚙ TO SET YOUR STOP</div>
 
-            <div id="buses" class="hidden">
-                <div id="bus1" class="bus-primary">
-                    <div class="route">--</div>
-                    <div class="time">-- MIN</div>
-                    <div class="status">--</div>
-                </div>
-                <div id="bus2" class="bus-secondary">
-                    <span class="route">--</span>
-                    <span class="time">-- MIN</span>
-                    <div class="status">--</div>
-                </div>
-                <div id="bus3" class="bus-secondary">
-                    <span class="route">--</span>
-                    <span class="time">-- MIN</span>
-                    <div class="status">--</div>
-                </div>
+        <div id="departures" class="hidden">
+            <div id="nextDep" class="next-departure">
+                <div class="mode">BUS</div>
+                <div class="route">--</div>
+                <div class="destination">--</div>
+                <div class="time">-- min</div>
+                <div class="platform"></div>
             </div>
+            <div id="laterDeps"></div>
         </div>
 
         <div class="footer">
-            UPDATED: <span id="updated">--:--</span>
+            UPDATED: <span id="updated">--:--</span> · <span id="stopName">--</span>
         </div>
     </div>
 
     <script>
-        // Configuration
-        var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJQWFh6Q1I4OVd3bUlweTdldzZHbnRFcXV3azJXNW1NQXZ6d3BlX19aVkRVIiwiaWF0IjoxNzk0ODk4Mjg1fQ.V7JCyJnsy0AfhWytEZDVGDc_OEXavXHFScxX4E34WQM';
-        var API_BASE = 'https://api.transport.nsw.gov.au/v1/tp';
-        var PROXY_URL = '/api'; // Local proxy server
-        var REFRESH_MS = 60000; // 1 minute
-        var FLASH_MS = 300000; // 5 minutes
+        // State
+        var config = {
+            stopId: '',
+            stopName: ''
+        };
+        var selectedStop = null;
 
-        var stopId = '';
-        var apiKey = API_KEY;
-        var foundStops = [];
-        var refreshTimer = null;
-        var flashTimer = null;
-
-        // Load saved settings
-        function loadSettings() {
+        // Load config from localStorage
+        function loadConfig() {
             try {
-                var saved = localStorage.getItem('bus_settings');
+                var saved = localStorage.getItem('transport_config');
                 if (saved) {
-                    var data = JSON.parse(saved);
-                    stopId = data.stopId || '';
-                    apiKey = data.apiKey || API_KEY;
+                    config = JSON.parse(saved);
                 }
-            } catch (e) {}
+            } catch(e) {}
         }
 
-        // Save settings
-        function saveToStorage() {
+        // Save config
+        function saveConfig() {
             try {
-                localStorage.setItem('bus_settings', JSON.stringify({
-                    stopId: stopId,
-                    apiKey: apiKey
-                }));
-            } catch (e) {}
+                localStorage.setItem('transport_config', JSON.stringify(config));
+            } catch(e) {}
         }
 
         // Show/hide elements
         function show(id) {
-            document.getElementById(id).className = document.getElementById(id).className.replace(' hidden', '');
+            var el = document.getElementById(id);
+            el.className = el.className.replace(' hidden', '').replace('hidden', '');
         }
-
         function hide(id) {
             var el = document.getElementById(id);
             if (el.className.indexOf('hidden') === -1) {
@@ -307,198 +287,195 @@
         // Format time
         function formatTime() {
             var d = new Date();
-            var h = d.getHours();
-            var m = d.getMinutes();
-            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+            return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
         }
 
-        // Calculate minutes until arrival
-        function calcMinutes(timeStr) {
-            var now = new Date();
-            var parts = timeStr.split(':');
-            var h = parseInt(parts[0], 10);
-            var m = parseInt(parts[1], 10);
-            var arrival = new Date(now);
-            arrival.setHours(h, m, 0, 0);
-            if (arrival < now) {
-                arrival.setDate(arrival.getDate() + 1);
-            }
-            return Math.round((arrival - now) / 60000);
+        // Show message in settings
+        function showMsg(text, isError) {
+            var el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'msg' + (isError ? ' error' : '');
+        }
+        function hideMsg() {
+            document.getElementById('msg').className = 'msg hidden';
         }
 
-        // Format date for API
-        function getDateParams() {
-            var d = new Date();
-            var date = d.getFullYear() +
-                ('0' + (d.getMonth() + 1)).slice(-2) +
-                ('0' + d.getDate()).slice(-2);
-            var time = ('0' + d.getHours()).slice(-2) +
-                ('0' + d.getMinutes()).slice(-2);
-            return { date: date, time: time };
-        }
-
-        // Make API request (uses local proxy to avoid CORS)
-        function apiRequest(endpoint, callback) {
+        // API request
+        function apiGet(url, callback) {
             var xhr = new XMLHttpRequest();
-            var url = PROXY_URL + endpoint;
-
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         try {
-                            var data = JSON.parse(xhr.responseText);
-                            callback(null, data);
-                        } catch (e) {
+                            callback(null, JSON.parse(xhr.responseText));
+                        } catch(e) {
                             callback('Invalid response', null);
                         }
                     } else {
-                        callback('Request failed: ' + xhr.status, null);
+                        callback('Request failed', null);
                     }
                 }
             };
-
             xhr.open('GET', url, true);
-            xhr.setRequestHeader('X-API-Key', apiKey);
             xhr.send();
         }
 
-        // Map occupancy codes
-        function mapOccupancy(code) {
-            var map = {
-                'MANY_SEATS': 'MANY SEATS',
-                'FEW_SEATS': 'FEW SEATS',
-                'STANDING_ROOM': 'STANDING',
-                'LIMITED_STANDING': 'CROWDED',
-                'FULL': 'FULL'
-            };
-            return map[code] || 'UNKNOWN';
-        }
-
-        // Parse departure data
-        function parseDeparture(event) {
-            var transport = event.transportation || {};
-            var route = transport.number || transport.disassembledName || '?';
-
-            var timeStr = '00:00';
-            if (event.departureTimeEstimated) {
-                var d = new Date(event.departureTimeEstimated);
-                timeStr = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
-            } else if (event.departureTimePlanned) {
-                var d = new Date(event.departureTimePlanned);
-                timeStr = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        // Search for stops
+        function doSearch() {
+            var query = document.getElementById('searchInput').value.trim();
+            if (!query) {
+                showMsg('Enter a stop name', true);
+                return;
             }
 
-            var mins = calcMinutes(timeStr);
-            var occupancy = mapOccupancy(event.occupancy);
+            showMsg('Searching...', false);
+            hide('stopList');
 
-            return {
-                route: route,
-                mins: mins,
-                occupancy: occupancy
-            };
+            apiGet('/api/stops?q=' + encodeURIComponent(query), function(err, data) {
+                if (err) {
+                    showMsg('Search failed: ' + err, true);
+                    return;
+                }
+
+                if (!data.stops || data.stops.length === 0) {
+                    showMsg('No stops found', true);
+                    return;
+                }
+
+                showMsg('Found ' + data.stops.length + ' stops', false);
+
+                var list = document.getElementById('stopList');
+                list.innerHTML = '';
+
+                for (var i = 0; i < data.stops.length; i++) {
+                    var stop = data.stops[i];
+                    var div = document.createElement('div');
+                    div.className = 'stop-item';
+                    div.innerHTML = '<div class="stop-name">' + stop.name + '</div>' +
+                        '<div class="stop-parent">' + (stop.parent || '') + ' · ' + stop.type + '</div>';
+                    div.onclick = (function(s) {
+                        return function() { selectStop(s); };
+                    })(stop);
+                    list.appendChild(div);
+                }
+
+                show('stopList');
+            });
         }
 
-        // Update bus display
-        function updateBus(id, data) {
-            var el = document.getElementById(id);
-            if (!el) return;
+        // Select a stop
+        function selectStop(stop) {
+            selectedStop = stop;
+            document.getElementById('selectedStop').value = stop.name + (stop.parent ? ' (' + stop.parent + ')' : '');
 
-            var routeEl = el.getElementsByClassName('route')[0];
-            var timeEl = el.getElementsByClassName('time')[0];
-            var statusEl = el.getElementsByClassName('status')[0];
+            // Highlight selected
+            var items = document.querySelectorAll('.stop-item');
+            for (var i = 0; i < items.length; i++) {
+                items[i].className = 'stop-item';
+            }
+            event.target.closest('.stop-item').className = 'stop-item selected';
 
-            routeEl.innerHTML = data.route;
-            timeEl.innerHTML = data.mins <= 0 ? 'NOW' : data.mins + ' MIN';
-            statusEl.innerHTML = data.occupancy;
+            showMsg('Selected: ' + stop.name, false);
+        }
+
+        // Save settings
+        function saveSettings() {
+            if (!selectedStop) {
+                showMsg('Please select a stop first', true);
+                return;
+            }
+
+            config.stopId = selectedStop.id;
+            config.stopName = selectedStop.name + (selectedStop.parent ? ' (' + selectedStop.parent + ')' : '');
+            saveConfig();
+            closeSettings();
+            fetchDepartures();
+        }
+
+        // Settings panel
+        function openSettings() {
+            hideMsg();
+            document.getElementById('searchInput').value = '';
+            document.getElementById('selectedStop').value = config.stopName || '';
+            hide('stopList');
+            selectedStop = null;
+            document.getElementById('settings').className = 'settings-overlay show';
+        }
+
+        function closeSettings() {
+            document.getElementById('settings').className = 'settings-overlay';
         }
 
         // Fetch departures
         function fetchDepartures() {
-            console.log('fetchDepartures called, stopId:', stopId);
-
-            if (!stopId || !apiKey) {
-                console.log('No stopId or apiKey, showing noConfig');
+            if (!config.stopId) {
                 hide('loading');
                 hide('error');
-                hide('buses');
+                hide('departures');
                 show('noConfig');
                 return;
             }
 
-            var dt = getDateParams();
-            // Extract numeric part of stop ID if it has a letter prefix
-            var numericStopId = stopId.replace(/^[A-Za-z]+/, '');
-            console.log('Fetching departures for stop:', stopId, '(numeric:', numericStopId + ')', 'date:', dt.date, 'time:', dt.time);
-
-            var endpoint = '/departure_mon?' +
-                'outputFormat=rapidJSON' +
-                '&type_dm=stop' +
-                '&name_dm=' + encodeURIComponent(numericStopId) +
-                '&itdDate=' + dt.date +
-                '&itdTime=' + dt.time +
-                '&mode=direct' +
-                '&TfNSWDM=true' +
-                '&departureMonitorMacro=true' +
-                '&limit=10';
-
             show('loading');
             hide('error');
-            hide('buses');
+            hide('departures');
             hide('noConfig');
 
-            apiRequest(endpoint, function(err, data) {
+            apiGet('/api/departures?stopId=' + encodeURIComponent(config.stopId), function(err, data) {
                 hide('loading');
-                console.log('Departure response:', err, JSON.stringify(data, null, 2));
 
                 if (err) {
-                    console.log('Error fetching departures:', err);
-                    document.getElementById('error').innerHTML = err;
+                    document.getElementById('error').textContent = err;
                     show('error');
                     return;
                 }
 
-                // Log all keys in response
-                console.log('Response keys:', Object.keys(data));
-
-                if (!data.stopEvents || data.stopEvents.length === 0) {
-                    console.log('No stopEvents found. Response has:', Object.keys(data));
-                    // Check if there's an error message
-                    if (data.ErrorDetails) {
-                        document.getElementById('error').innerHTML = data.ErrorDetails.Message || 'API ERROR';
-                    } else {
-                        document.getElementById('error').innerHTML = 'NO BUSES FOUND';
-                    }
+                if (!data.departures || data.departures.length === 0) {
+                    document.getElementById('error').textContent = 'NO DEPARTURES FOUND';
                     show('error');
                     return;
                 }
 
-                console.log('Found', data.stopEvents.length, 'departures');
-
-                var departures = [];
-                for (var i = 0; i < Math.min(3, data.stopEvents.length); i++) {
-                    var dep = parseDeparture(data.stopEvents[i]);
-                    if (dep.mins >= 0) {
-                        departures.push(dep);
-                    }
-                }
-
-                if (departures.length === 0) {
-                    document.getElementById('error').innerHTML = 'NO UPCOMING BUSES';
-                    show('error');
-                    return;
-                }
-
-                // Update display
-                if (departures[0]) updateBus('bus1', departures[0]);
-                if (departures[1]) updateBus('bus2', departures[1]);
-                if (departures[2]) updateBus('bus3', departures[2]);
-
-                show('buses');
-                document.getElementById('updated').innerHTML = formatTime();
+                displayDepartures(data.departures);
             });
         }
 
-        // E-ink flash refresh
+        // Display departures
+        function displayDepartures(departures) {
+            var next = departures[0];
+
+            // Update next departure
+            var nextEl = document.getElementById('nextDep');
+            nextEl.querySelector('.mode').textContent = next.mode.toUpperCase();
+            nextEl.querySelector('.route').textContent = next.route;
+            nextEl.querySelector('.destination').textContent = next.destination || '';
+            nextEl.querySelector('.time').textContent = next.minutes <= 0 ? 'NOW' : next.minutes + ' min';
+            nextEl.querySelector('.platform').textContent = next.platform ? 'Platform ' + next.platform : '';
+
+            // Later departures
+            var laterEl = document.getElementById('laterDeps');
+            laterEl.innerHTML = '';
+
+            for (var i = 1; i < Math.min(5, departures.length); i++) {
+                var dep = departures[i];
+                var div = document.createElement('div');
+                div.className = 'later';
+                div.innerHTML =
+                    '<div class="info">' +
+                        '<span class="mode">' + dep.mode.toUpperCase() + '</span> ' +
+                        '<span class="route">' + dep.route + '</span>' +
+                        '<div class="destination">' + (dep.destination || '') + '</div>' +
+                    '</div>' +
+                    '<div class="time">' + (dep.minutes <= 0 ? 'NOW' : dep.minutes + ' min') + '</div>';
+                laterEl.appendChild(div);
+            }
+
+            show('departures');
+            document.getElementById('updated').textContent = formatTime();
+            document.getElementById('stopName').textContent = config.stopName || '';
+        }
+
+        // E-ink refresh (flash black then white)
         function flashRefresh() {
             document.body.style.background = '#000';
             setTimeout(function() {
@@ -506,166 +483,29 @@
             }, 150);
         }
 
-        // Settings functions
-        function openSettings() {
-            document.getElementById('apiKey').value = apiKey;
-            document.getElementById('stopId').value = stopId;
-            document.getElementById('settings').className = 'settings show';
-        }
-
-        function closeSettings() {
-            document.getElementById('settings').className = 'settings';
-        }
-
-        function showStatus(msg, isError) {
-            var el = document.getElementById('statusText');
-            el.innerHTML = msg;
-            el.style.background = isError ? '#000' : '#fff';
-            el.style.color = isError ? '#fff' : '#000';
-            el.className = 'status-text';
-        }
-
-        function hideStatus() {
-            document.getElementById('statusText').className = 'status-text hidden';
-        }
-
-        function testApi() {
-            var key = document.getElementById('apiKey').value;
-            if (!key) {
-                showStatus('ENTER API KEY', true);
-                return;
-            }
-
-            showStatus('TESTING...', false);
-            apiKey = key;
-
-            var endpoint = '/stop_finder?' +
-                'outputFormat=rapidJSON' +
-                '&type_sf=any' +
-                '&name_sf=Sydney' +
-                '&TfNSWSF=true';
-
-            apiRequest(endpoint, function(err, data) {
-                if (err) {
-                    showStatus('FAILED: ' + err, true);
-                } else if (data.locations) {
-                    showStatus('SUCCESS! Found ' + data.locations.length + ' results', false);
-                } else {
-                    showStatus('SUCCESS!', false);
-                }
-            });
-        }
-
-        function searchStops() {
-            var search = document.getElementById('searchInput').value;
-            var key = document.getElementById('apiKey').value;
-
-            if (!search) {
-                showStatus('ENTER SUBURB NAME', true);
-                return;
-            }
-            if (!key) {
-                showStatus('ENTER API KEY FIRST', true);
-                return;
-            }
-
-            showStatus('SEARCHING...', false);
-            apiKey = key;
-
-            var endpoint = '/stop_finder?' +
-                'outputFormat=rapidJSON' +
-                '&type_sf=any' +
-                '&name_sf=' + encodeURIComponent(search) +
-                '&TfNSWSF=true';
-
-            apiRequest(endpoint, function(err, data) {
-                if (err) {
-                    showStatus('SEARCH FAILED: ' + err, true);
-                    return;
-                }
-
-                var stops = [];
-                var locs = data.locations || [];
-                for (var i = 0; i < locs.length; i++) {
-                    var loc = locs[i];
-                    if (loc.type === 'stop' || loc.type === 'platform') {
-                        stops.push(loc);
-                    }
-                }
-
-                if (stops.length === 0) {
-                    showStatus('NO STOPS FOUND', true);
-                    return;
-                }
-
-                foundStops = stops;
-                // Log first stop to see its structure
-                console.log('First stop object:', JSON.stringify(stops[0], null, 2));
-
-                var select = document.getElementById('stopSelect');
-                select.innerHTML = '<option value="">-- Select stop --</option>';
-
-                for (var i = 0; i < stops.length; i++) {
-                    var s = stops[i];
-                    var name = s.disassembledName || s.name || 'Unknown';
-                    var parent = (s.parent && s.parent.name) ? ' (' + s.parent.name + ')' : '';
-                    var opt = document.createElement('option');
-                    opt.value = i;
-                    opt.text = name + parent;
-                    select.appendChild(opt);
-                }
-
-                select.disabled = false;
-                select.onchange = function() {
-                    var idx = select.value;
-                    if (idx !== '' && foundStops[idx]) {
-                        document.getElementById('stopId').value = foundStops[idx].id || '';
-                    }
-                };
-
-                showStatus('FOUND ' + stops.length + ' STOPS', false);
-            });
-        }
-
-        function saveSettings() {
-            var key = document.getElementById('apiKey').value;
-            var stop = document.getElementById('stopId').value;
-
-            if (!key) {
-                showStatus('ENTER API KEY', true);
-                return;
-            }
-            if (!stop) {
-                showStatus('SELECT A STOP', true);
-                return;
-            }
-
-            apiKey = key;
-            stopId = stop;
-            saveToStorage();
-            closeSettings();
-            fetchDepartures();
-        }
-
         // Initialize
         function init() {
-            loadSettings();
+            loadConfig();
 
-            if (stopId && apiKey) {
+            if (config.stopId) {
                 fetchDepartures();
             } else {
                 hide('loading');
                 show('noConfig');
             }
 
-            // Auto refresh
-            refreshTimer = setInterval(fetchDepartures, REFRESH_MS);
+            // Auto refresh every minute
+            setInterval(fetchDepartures, 60000);
 
-            // E-ink flash refresh
-            flashTimer = setInterval(flashRefresh, FLASH_MS);
+            // E-ink flash refresh every 5 minutes
+            setInterval(flashRefresh, 300000);
+
+            // Enter key in search
+            document.getElementById('searchInput').onkeypress = function(e) {
+                if (e.key === 'Enter') doSearch();
+            };
         }
 
-        // Start
         init();
     </script>
 </body>
