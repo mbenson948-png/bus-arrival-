@@ -3,239 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Next Departure</title>
+    <title>Transit Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@500;700&display=swap">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: 'Archivo', Arial, sans-serif;
             background: #fff;
             color: #000;
-            min-height: 100vh;
-            padding: 12px;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: unset;
         }
 
-        /* Icons */
-        .icon {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-        }
-        .icon-large {
-            width: 48px;
-            height: 48px;
-        }
-        .icon svg {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Header */
-        .header {
+        /* Main container - 800x480 e-ink panel */
+        .board {
+            width: 800px;
+            height: 480px;
+            background: #fff;
+            color: #000;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-        }
-        .header-left h1 { font-size: 18px; }
-        .header-left .stop-name {
-            font-size: 12px;
-            margin-top: 2px;
-            max-width: 250px;
+            flex-direction: column;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .gear {
-            width: 32px;
-            height: 32px;
-            border: 2px solid #000;
-            text-align: center;
-            line-height: 28px;
-            font-size: 20px;
-            cursor: pointer;
-            flex-shrink: 0;
         }
 
-        /* Main departure display */
-        .next-departure {
-            border: 4px solid #000;
-            padding: 15px;
-            margin-bottom: 12px;
-        }
-        .next-departure .top-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .next-departure .icon-large {
-            margin-right: 15px;
-        }
-        .next-departure .route-info {
-            flex: 1;
-        }
-        .next-departure .route {
-            font-size: 56px;
-            font-weight: bold;
-            line-height: 1;
-        }
-        .next-departure .mode-label {
-            font-size: 12px;
-            font-weight: bold;
+        /* Header bar */
+        .header {
             background: #000;
             color: #fff;
-            display: inline-block;
-            padding: 2px 8px;
-            margin-top: 5px;
-        }
-        .next-departure .destination {
-            font-size: 16px;
-            font-weight: bold;
-            margin-top: 8px;
-            border-top: 2px solid #000;
-            padding-top: 8px;
-        }
-        .next-departure .time-row {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            margin-top: 8px;
-        }
-        .next-departure .time-main {
-            font-size: 42px;
-            font-weight: bold;
-        }
-        .next-departure .time-clock {
-            font-size: 24px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        .next-departure .time-realtime {
-            font-size: 10px;
-            vertical-align: super;
-        }
-        .next-departure .platform {
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .next-departure .occupancy {
-            display: inline-block;
-            font-size: 18px;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-        .next-departure .next-stops {
-            font-size: 11px;
-            margin-top: 6px;
-            padding-top: 6px;
-            border-top: 1px solid #000;
-        }
-        .next-departure .next-stops span {
-            display: inline;
-        }
-        .occupancy-1 { opacity: 0.4; }
-        .occupancy-2 { opacity: 0.6; }
-        .occupancy-3 { opacity: 0.8; }
-        .occupancy-4, .occupancy-5, .occupancy-6 { opacity: 1; }
-
-        /* Later departures */
-        .later {
-            border: 2px solid #000;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            display: flex;
             align-items: center;
+            padding: 14px 24px;
         }
-        .later .icon {
-            margin-right: 10px;
+        .header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
-        .later .info { flex: 1; }
-        .later .route {
-            font-size: 24px;
-            font-weight: bold;
+        .stop-name {
+            font-weight: 900;
+            font-stretch: 125%;
+            font-size: 34px;
+            line-height: 1;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
         }
-        .later .destination {
-            font-size: 11px;
-            margin-top: 2px;
-        }
-        .later .time {
-            font-size: 22px;
-            font-weight: bold;
-            text-align: right;
-        }
-        .later .time-clock {
+        .stop-detail {
             font-size: 14px;
-            display: block;
-        }
-        .later .occupancy {
-            font-size: 16px;
-            margin-left: 6px;
-        }
-        .later .next-stops {
-            font-size: 9px;
-            color: #333;
-            margin-top: 2px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
         }
 
-        /* Portrait/Landscape modes */
-        body.landscape {
-            padding: 8px 20px;
+        /* Clock display */
+        .clock {
+            display: flex;
+            gap: 4px;
+            align-items: center;
         }
-        body.landscape .next-departure {
+        .clock-char {
+            position: relative;
+            height: 52px;
+            background: #fff;
+            color: #000;
+            border-radius: 5px;
             display: flex;
             align-items: center;
-            padding: 10px 15px;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            font-size: 36px;
         }
-        body.landscape .next-departure .top-row {
-            margin-bottom: 0;
-            flex: 0 0 auto;
+        .clock-char.digit { width: 34px; }
+        .clock-char.colon { width: 16px; }
+        .clock-char::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 25px;
+            height: 2px;
+            background: #000;
         }
-        body.landscape .next-departure .route-info {
-            min-width: 100px;
+
+        /* Column headers */
+        .col-headers {
+            display: grid;
+            grid-template-columns: 150px 1fr 170px;
+            gap: 16px;
+            padding: 10px 24px 4px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
         }
-        body.landscape .next-departure .destination {
+        .col-headers .right { text-align: right; }
+
+        /* Departure rows */
+        .rows {
             flex: 1;
-            border-top: none;
-            border-left: 2px solid #000;
-            padding-top: 0;
-            padding-left: 15px;
-            margin-top: 0;
-            margin-left: 15px;
+            display: flex;
+            flex-direction: column;
+            padding: 0 24px;
+            overflow: hidden;
         }
-        body.landscape .next-departure .time-row {
-            margin-top: 0;
-            margin-left: auto;
-            padding-left: 15px;
-            border-left: 2px solid #000;
-            text-align: right;
+        .row {
+            display: grid;
+            grid-template-columns: 150px 1fr 170px;
+            gap: 16px;
+            align-items: center;
+            height: 62px;
+            border-top: 2px solid #000;
+            cursor: pointer;
         }
-        body.landscape .later {
-            padding: 6px 10px;
+
+        /* Route number - split flap tiles */
+        .route-tiles {
+            display: flex;
+            gap: 3px;
+        }
+        .tile {
+            position: relative;
+            width: 34px;
+            height: 44px;
+            background: #000;
+            color: #fff;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700;
+            font-size: 28px;
+        }
+        .tile::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 21px;
+            height: 2px;
+            background: #fff;
+        }
+
+        /* Destination info */
+        .dest-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .dest-name {
+            font-weight: 800;
+            font-stretch: 112%;
+            font-size: 23px;
+            line-height: 1.05;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-transform: uppercase;
+        }
+        .dest-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border: 2px solid #000;
+        }
+        .status-dot.live { background: #000; }
+        .status-dot.timetable { background: #fff; }
+
+        /* Time display */
+        .time-display {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 3px;
+        }
+        .time-tiles {
+            display: flex;
+            gap: 3px;
+        }
+        .time-unit {
+            width: 40px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            padding-left: 4px;
         }
 
         /* Footer */
         .footer {
-            border-top: 2px solid #000;
-            padding-top: 6px;
-            margin-top: 12px;
-            font-size: 10px;
-            font-weight: bold;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 24px;
+            border-top: 4px solid #000;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+        .alert {
+            background: #000;
+            color: #fff;
+            padding: 3px 10px;
+        }
+        .updated {
+            margin-left: auto;
+        }
+        .footer-legend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Status messages */
-        .status {
-            text-align: center;
-            padding: 40px 20px;
-            font-size: 18px;
-            font-weight: bold;
-            border: 3px solid #000;
+        .status-msg {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
-        .hidden { display: none !important; }
 
         /* Settings overlay */
         .settings-overlay {
@@ -243,299 +241,215 @@
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: #fff;
-            padding: 12px;
+            padding: 24px;
             overflow-y: auto;
+            z-index: 100;
         }
         .settings-overlay.show { display: block; }
         .settings-overlay h2 {
-            font-size: 16px;
-            border-bottom: 3px solid #000;
-            padding-bottom: 6px;
-            margin-bottom: 12px;
+            font-size: 24px;
+            font-weight: 900;
+            font-stretch: 125%;
+            border-bottom: 4px solid #000;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
         }
-        .form-group { margin-bottom: 12px; }
+        .form-group { margin-bottom: 16px; }
         .form-group label {
             display: block;
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+            text-transform: uppercase;
         }
-        .form-group input, .form-group select {
+        .form-group input {
             width: 100%;
-            padding: 8px;
-            font-size: 14px;
+            padding: 10px;
+            font-size: 16px;
             border: 2px solid #000;
+            font-family: 'IBM Plex Mono', monospace;
         }
-
-        /* Mode checkboxes */
-        .mode-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 5px;
-        }
-        .mode-filter {
-            display: flex;
-            align-items: center;
-            padding: 6px 10px;
-            border: 2px solid #000;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .mode-filter input {
-            width: auto;
-            margin-right: 6px;
-        }
-        .mode-filter.checked {
-            background: #000;
-            color: #fff;
-        }
-        .mode-filter .icon {
-            width: 18px;
-            height: 18px;
-            margin-right: 4px;
-        }
-        .mode-filter.checked .icon svg {
-            fill: #fff;
-        }
-
         .btn {
-            padding: 10px 16px;
-            font-size: 12px;
-            font-weight: bold;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
             border: 2px solid #000;
             background: #000;
             color: #fff;
             cursor: pointer;
-            margin-right: 6px;
-            margin-top: 8px;
+            margin-right: 8px;
+            text-transform: uppercase;
         }
         .btn.secondary {
             background: #fff;
             color: #000;
         }
         .msg {
-            padding: 8px;
-            font-size: 11px;
-            font-weight: bold;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: 700;
             border: 2px solid #000;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             text-align: center;
         }
         .msg.error { background: #000; color: #fff; }
-
-        /* Stop list */
         .stop-list {
-            max-height: 180px;
+            max-height: 200px;
             overflow-y: auto;
             border: 2px solid #000;
             margin-top: 8px;
         }
         .stop-item {
-            padding: 8px;
+            padding: 10px;
             border-bottom: 1px solid #000;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
         }
         .stop-item:last-child { border-bottom: none; }
-        .stop-item.selected {
-            background: #000;
-            color: #fff;
+        .stop-item.selected { background: #000; color: #fff; }
+        .stop-item .stop-name { font-weight: 700; }
+        .stop-item .stop-parent { font-size: 11px; margin-top: 2px; }
+
+        /* Mode filters */
+        .mode-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
         }
-        .stop-item .stop-name { font-weight: bold; }
-        .stop-item .stop-parent { font-size: 10px; margin-top: 2px; }
+        .mode-filter {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border: 2px solid #000;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .mode-filter input { width: auto; margin-right: 6px; }
+        .mode-filter.checked { background: #000; color: #fff; }
+
+        /* Settings button */
+        .settings-btn {
+            position: absolute;
+            top: 14px;
+            right: 24px;
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            border: 2px solid #fff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+        .settings-btn:hover { background: #ccc; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <!-- SVG Icon definitions -->
-    <svg style="display:none">
-        <defs>
-            <!-- Bus icon -->
-            <symbol id="icon-bus" viewBox="0 0 24 24">
-                <rect x="3" y="3" width="18" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                <line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2"/>
-                <circle cx="7" cy="21" r="2" fill="currentColor"/>
-                <circle cx="17" cy="21" r="2" fill="currentColor"/>
-                <rect x="6" y="5" width="3" height="3" fill="currentColor"/>
-                <rect x="15" y="5" width="3" height="3" fill="currentColor"/>
-            </symbol>
-            <!-- Train icon -->
-            <symbol id="icon-train" viewBox="0 0 24 24">
-                <rect x="4" y="2" width="16" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                <line x1="4" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="2"/>
-                <circle cx="8" cy="14" r="1.5" fill="currentColor"/>
-                <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
-                <line x1="6" y1="18" x2="4" y2="22" stroke="currentColor" stroke-width="2"/>
-                <line x1="18" y1="18" x2="20" y2="22" stroke="currentColor" stroke-width="2"/>
-                <rect x="8" y="4" width="8" height="4" fill="currentColor"/>
-            </symbol>
-            <!-- Ferry icon -->
-            <symbol id="icon-ferry" viewBox="0 0 24 24">
-                <path d="M3 17 L12 20 L21 17" fill="none" stroke="currentColor" stroke-width="2"/>
-                <path d="M5 17 L5 10 L12 7 L19 10 L19 17" fill="none" stroke="currentColor" stroke-width="2"/>
-                <rect x="10" y="10" width="4" height="4" fill="currentColor"/>
-                <line x1="12" y1="7" x2="12" y2="4" stroke="currentColor" stroke-width="2"/>
-                <path d="M2 22 Q7 20 12 22 Q17 20 22 22" fill="none" stroke="currentColor" stroke-width="2"/>
-            </symbol>
-            <!-- Metro/Light Rail icon -->
-            <symbol id="icon-metro" viewBox="0 0 24 24">
-                <rect x="5" y="3" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
-                <line x1="5" y1="10" x2="19" y2="10" stroke="currentColor" stroke-width="2"/>
-                <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
-                <circle cx="16" cy="13" r="1.5" fill="currentColor"/>
-                <line x1="8" y1="17" x2="6" y2="21" stroke="currentColor" stroke-width="2"/>
-                <line x1="16" y1="17" x2="18" y2="21" stroke="currentColor" stroke-width="2"/>
-                <line x1="9" y1="5" x2="9" y2="8" stroke="currentColor" stroke-width="2"/>
-                <line x1="15" y1="5" x2="15" y2="8" stroke="currentColor" stroke-width="2"/>
-            </symbol>
-            <!-- School Bus icon -->
-            <symbol id="icon-schoolbus" viewBox="0 0 24 24">
-                <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
-                <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/>
-                <circle cx="6" cy="21" r="2" fill="currentColor"/>
-                <circle cx="18" cy="21" r="2" fill="currentColor"/>
-                <rect x="5" y="8" width="3" height="3" fill="currentColor"/>
-                <rect x="10" y="8" width="3" height="3" fill="currentColor"/>
-                <rect x="16" y="8" width="3" height="3" fill="currentColor"/>
-                <text x="12" y="5" text-anchor="middle" font-size="4" font-weight="bold">SCHOOL</text>
-            </symbol>
-        </defs>
-    </svg>
-
     <!-- Settings -->
     <div id="settings" class="settings-overlay">
-        <h2>SETTINGS</h2>
+        <h2>Settings</h2>
         <div id="msg" class="msg hidden"></div>
 
         <div class="form-group">
-            <label>SEARCH FOR YOUR STOP (name or stop number)</label>
-            <input type="text" id="searchInput" placeholder="e.g. Chatswood, 2000105, Circular Quay">
+            <label>Search for your stop (name or number)</label>
+            <input type="text" id="searchInput" placeholder="e.g. Gladesville, 2000105">
         </div>
         <button class="btn" onclick="doSearch()">SEARCH</button>
 
         <div id="stopList" class="stop-list hidden"></div>
 
-        <div class="form-group" style="margin-top:15px;">
-            <label>SELECTED STOP</label>
-            <input type="text" id="selectedStop" readonly placeholder="Search and select a stop above">
+        <div class="form-group" style="margin-top:20px;">
+            <label>Selected stop</label>
+            <input type="text" id="selectedStop" readonly placeholder="Search and select above">
         </div>
 
         <div class="form-group">
-            <label>DISPLAY ORIENTATION</label>
-            <div class="mode-filters">
-                <label class="mode-filter checked" data-orient="portrait">
-                    <input type="radio" name="orient" checked>
-                    Portrait
-                </label>
-                <label class="mode-filter" data-orient="landscape">
-                    <input type="radio" name="orient">
-                    Landscape
-                </label>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>SHOW TRANSPORT TYPES</label>
+            <label>Show transport types</label>
             <div class="mode-filters">
                 <label class="mode-filter checked" data-mode="bus">
-                    <input type="checkbox" checked>
-                    <span class="icon"><svg><use href="#icon-bus"/></svg></span>
-                    Bus
+                    <input type="checkbox" checked> Bus
                 </label>
                 <label class="mode-filter checked" data-mode="train">
-                    <input type="checkbox" checked>
-                    <span class="icon"><svg><use href="#icon-train"/></svg></span>
-                    Train
+                    <input type="checkbox" checked> Train
                 </label>
                 <label class="mode-filter checked" data-mode="ferry">
-                    <input type="checkbox" checked>
-                    <span class="icon"><svg><use href="#icon-ferry"/></svg></span>
-                    Ferry
+                    <input type="checkbox" checked> Ferry
                 </label>
                 <label class="mode-filter checked" data-mode="metro">
-                    <input type="checkbox" checked>
-                    <span class="icon"><svg><use href="#icon-metro"/></svg></span>
-                    Metro
+                    <input type="checkbox" checked> Metro
                 </label>
                 <label class="mode-filter" data-mode="schoolbus">
-                    <input type="checkbox">
-                    <span class="icon"><svg><use href="#icon-schoolbus"/></svg></span>
-                    School
+                    <input type="checkbox"> School
                 </label>
             </div>
         </div>
 
-        <div style="margin-top:15px;">
+        <div style="margin-top:20px;">
             <button class="btn" onclick="saveSettings()">SAVE</button>
             <button class="btn secondary" onclick="closeSettings()">CANCEL</button>
         </div>
     </div>
 
-    <!-- Main Display -->
-    <div id="main">
+    <!-- Main Board -->
+    <div class="board" id="board">
         <div class="header">
             <div class="header-left">
-                <h1>NEXT DEPARTURE</h1>
-                <div class="stop-name" id="headerStopName">--</div>
+                <div class="stop-name" id="headerStopName">LOADING</div>
+                <div class="stop-detail" id="headerStopDetail">TAP ⚙ TO CONFIGURE</div>
             </div>
-            <div class="gear" onclick="openSettings()">⚙</div>
+            <button class="settings-btn" onclick="openSettings()">⚙</button>
+            <div class="clock" id="clock"></div>
         </div>
 
-        <div id="loading" class="status">LOADING...</div>
-        <div id="error" class="status hidden"></div>
-        <div id="noConfig" class="status hidden">TAP ⚙ TO SET YOUR STOP</div>
+        <div class="col-headers">
+            <div>ROUTE</div>
+            <div>DESTINATION</div>
+            <div class="right">DEPARTS</div>
+        </div>
 
-        <div id="departures" class="hidden">
-            <div id="nextDep" class="next-departure">
-                <div class="top-row">
-                    <div class="icon icon-large" id="nextIcon">
-                        <svg><use href="#icon-bus"/></svg>
-                    </div>
-                    <div class="route-info">
-                        <div class="route" id="nextRoute">--</div>
-                        <div class="mode-label" id="nextMode">BUS</div>
-                    </div>
-                </div>
-                <div class="destination" id="nextDest">--</div>
-                <div class="next-stops" id="nextStops"></div>
-                <div class="time-row">
-                    <div>
-                        <span class="time-main" id="nextTime">-- min</span>
-                        <span class="time-clock" id="nextClock">--:--</span>
-                        <span class="time-realtime" id="nextRealtime"></span>
-                        <span class="occupancy" id="nextOccupancy"></span>
-                    </div>
-                    <div class="platform" id="nextPlatform"></div>
-                </div>
-            </div>
-            <div id="laterDeps"></div>
+        <div class="rows" id="rows">
+            <div id="loading" class="status-msg">LOADING...</div>
+            <div id="error" class="status-msg hidden"></div>
+            <div id="noConfig" class="status-msg hidden">TAP ⚙ TO SET STOP</div>
         </div>
 
         <div class="footer">
-            <span>UPDATED: <span id="updated">--:--</span></span>
-            <span id="filterInfo">ALL MODES</span>
+            <div id="alertBar" class="alert hidden"></div>
+            <div class="footer-legend">
+                <span class="status-dot live"></span>LIVE
+                <span class="status-dot timetable" style="margin-left:8px"></span>TIMETABLE
+            </div>
+            <div class="updated">UPDATED <span id="updated">--:--</span></div>
         </div>
     </div>
 
     <script>
         // Mode definitions
         var MODES = {
-            1: { name: 'Train', icon: 'train', key: 'train' },
-            2: { name: 'Metro', icon: 'metro', key: 'metro' },
-            4: { name: 'Light Rail', icon: 'metro', key: 'metro' },
-            5: { name: 'Bus', icon: 'bus', key: 'bus' },
-            7: { name: 'Coach', icon: 'bus', key: 'bus' },
-            9: { name: 'Ferry', icon: 'ferry', key: 'ferry' },
-            11: { name: 'School Bus', icon: 'schoolbus', key: 'schoolbus' }
+            1: { name: 'Train', key: 'train' },
+            2: { name: 'Metro', key: 'metro' },
+            4: { name: 'Light Rail', key: 'metro' },
+            5: { name: 'Bus', key: 'bus' },
+            7: { name: 'Coach', key: 'bus' },
+            9: { name: 'Ferry', key: 'ferry' },
+            11: { name: 'School Bus', key: 'schoolbus' }
         };
 
         // State
         var config = {
             stopId: '',
             stopName: '',
-            modes: ['bus', 'train', 'ferry', 'metro'],
-            orientation: 'portrait'
+            stopDetail: '',
+            modes: ['bus', 'train', 'ferry', 'metro']
         };
         var selectedStop = null;
         var currentDepartures = [];
@@ -543,7 +457,7 @@
         // Load config
         function loadConfig() {
             try {
-                var saved = localStorage.getItem('transport_config_v2');
+                var saved = localStorage.getItem('transit_board_config');
                 if (saved) config = JSON.parse(saved);
             } catch(e) {}
         }
@@ -551,22 +465,68 @@
         // Save config
         function saveConfig() {
             try {
-                localStorage.setItem('transport_config_v2', JSON.stringify(config));
+                localStorage.setItem('transit_board_config', JSON.stringify(config));
             } catch(e) {}
         }
 
         // Show/hide
-        function show(id) {
-            document.getElementById(id).classList.remove('hidden');
-        }
-        function hide(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
+        function show(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hide(id) { document.getElementById(id).classList.add('hidden'); }
 
-        // Format time
+        // Format time HH:MM
         function formatTime() {
             var d = new Date();
             return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        }
+
+        // Update clock display
+        function updateClock() {
+            var time = formatTime();
+            var chars = time.split('');
+            var html = '';
+            chars.forEach(function(ch) {
+                var cls = ch === ':' ? 'clock-char colon' : 'clock-char digit';
+                html += '<div class="' + cls + '">' + ch + '</div>';
+            });
+            document.getElementById('clock').innerHTML = html;
+        }
+
+        // Create split-flap tiles for route
+        function createRouteTiles(route) {
+            var padded = route.toString().padEnd(3, ' ');
+            var html = '';
+            padded.split('').forEach(function(ch) {
+                html += '<div class="tile">' + ch + '</div>';
+            });
+            return html;
+        }
+
+        // Create time tiles
+        function createTimeTiles(minutes) {
+            var text, unit;
+            if (minutes <= 1) {
+                text = 'DUE';
+                unit = '';
+            } else if (minutes < 60) {
+                text = String(minutes);
+                unit = 'MIN';
+            } else {
+                // Show clock time for > 60 min
+                var now = new Date();
+                var dep = new Date(now.getTime() + minutes * 60000);
+                text = ('0' + dep.getHours()).slice(-2) + ':' + ('0' + dep.getMinutes()).slice(-2);
+                unit = '';
+            }
+
+            var chars = text.split('');
+            var html = '<div class="time-tiles">';
+            chars.forEach(function(ch) {
+                var w = ch === ':' ? '16px' : '34px';
+                html += '<div class="tile" style="width:' + w + '">' + ch + '</div>';
+            });
+            html += '</div>';
+            html += '<div class="time-unit">' + unit + '</div>';
+            return html;
         }
 
         // Message
@@ -575,9 +535,7 @@
             el.textContent = text;
             el.className = 'msg' + (isError ? ' error' : '');
         }
-        function hideMsg() {
-            document.getElementById('msg').className = 'msg hidden';
-        }
+        function hideMsg() { document.getElementById('msg').className = 'msg hidden'; }
 
         // API request
         function apiGet(url, callback) {
@@ -585,11 +543,8 @@
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
-                        try {
-                            callback(null, JSON.parse(xhr.responseText));
-                        } catch(e) {
-                            callback('Invalid response', null);
-                        }
+                        try { callback(null, JSON.parse(xhr.responseText)); }
+                        catch(e) { callback('Invalid response', null); }
                     } else {
                         callback('Request failed', null);
                     }
@@ -602,23 +557,14 @@
         // Search stops
         function doSearch() {
             var query = document.getElementById('searchInput').value.trim();
-            if (!query) {
-                showMsg('Enter a stop name', true);
-                return;
-            }
+            if (!query) { showMsg('Enter a stop name', true); return; }
 
             showMsg('Searching...', false);
             hide('stopList');
 
             apiGet('/api/stops?q=' + encodeURIComponent(query), function(err, data) {
-                if (err) {
-                    showMsg('Search failed: ' + err, true);
-                    return;
-                }
-                if (!data.stops || data.stops.length === 0) {
-                    showMsg('No stops found', true);
-                    return;
-                }
+                if (err) { showMsg('Search failed: ' + err, true); return; }
+                if (!data.stops || data.stops.length === 0) { showMsg('No stops found', true); return; }
 
                 showMsg('Found ' + data.stops.length + ' stops', false);
 
@@ -663,7 +609,7 @@
             });
         }
 
-        // Toggle mode filter
+        // Setup mode filters
         function setupModeFilters() {
             document.querySelectorAll('.mode-filter').forEach(function(filter) {
                 filter.onclick = function(e) {
@@ -686,47 +632,6 @@
             return modes;
         }
 
-        // Get selected orientation
-        function getSelectedOrientation() {
-            var orient = 'portrait';
-            document.querySelectorAll('[data-orient]').forEach(function(el) {
-                if (el.querySelector('input').checked) {
-                    orient = el.dataset.orient;
-                }
-            });
-            return orient;
-        }
-
-        // Apply orientation
-        function applyOrientation() {
-            document.body.classList.remove('portrait', 'landscape');
-            document.body.classList.add(config.orientation);
-        }
-
-        // Update orientation UI
-        function updateOrientationUI() {
-            document.querySelectorAll('[data-orient]').forEach(function(el) {
-                var isSelected = el.dataset.orient === config.orientation;
-                el.querySelector('input').checked = isSelected;
-                el.classList.toggle('checked', isSelected);
-            });
-        }
-
-        // Setup orientation toggles
-        function setupOrientationToggles() {
-            document.querySelectorAll('[data-orient]').forEach(function(el) {
-                el.onclick = function(e) {
-                    if (e.target.tagName === 'INPUT') return;
-                    document.querySelectorAll('[data-orient]').forEach(function(other) {
-                        other.querySelector('input').checked = false;
-                        other.classList.remove('checked');
-                    });
-                    el.querySelector('input').checked = true;
-                    el.classList.add('checked');
-                };
-            });
-        }
-
         // Save settings
         function saveSettings() {
             if (!selectedStop && !config.stopId) {
@@ -736,10 +641,10 @@
 
             if (selectedStop) {
                 config.stopId = selectedStop.id;
-                config.stopName = selectedStop.name + (selectedStop.parent ? ' (' + selectedStop.parent + ')' : '');
+                config.stopName = selectedStop.name.split(',')[0].toUpperCase();
+                config.stopDetail = selectedStop.parent || selectedStop.name;
             }
             config.modes = getSelectedModes();
-            config.orientation = getSelectedOrientation();
 
             if (config.modes.length === 0) {
                 showMsg('Select at least one transport type', true);
@@ -747,7 +652,6 @@
             }
 
             saveConfig();
-            applyOrientation();
             closeSettings();
             fetchDepartures();
         }
@@ -760,18 +664,11 @@
             hide('stopList');
             selectedStop = null;
             updateModeFilters();
-            updateOrientationUI();
             document.getElementById('settings').classList.add('show');
         }
 
         function closeSettings() {
             document.getElementById('settings').classList.remove('show');
-        }
-
-        // Get icon for mode
-        function getIconHref(modeCode) {
-            var mode = MODES[modeCode];
-            return mode ? '#icon-' + mode.icon : '#icon-bus';
         }
 
         // Get mode key for filtering
@@ -785,29 +682,27 @@
             if (!config.stopId) {
                 hide('loading');
                 hide('error');
-                hide('departures');
                 show('noConfig');
+                document.getElementById('headerStopName').textContent = 'NO STOP';
+                document.getElementById('headerStopDetail').textContent = 'TAP ⚙ TO CONFIGURE';
                 return;
             }
 
-            show('loading');
-            hide('error');
-            hide('departures');
-            hide('noConfig');
-
-            document.getElementById('headerStopName').textContent = config.stopName || '--';
+            document.getElementById('headerStopName').textContent = config.stopName || 'LOADING';
+            document.getElementById('headerStopDetail').textContent = config.stopDetail || '';
 
             apiGet('/api/departures?stopId=' + encodeURIComponent(config.stopId), function(err, data) {
                 hide('loading');
+                hide('noConfig');
 
                 if (err) {
-                    document.getElementById('error').textContent = err;
+                    document.getElementById('error').textContent = err.toUpperCase();
                     show('error');
                     return;
                 }
 
                 if (!data.departures || data.departures.length === 0) {
-                    document.getElementById('error').textContent = 'NO DEPARTURES FOUND';
+                    document.getElementById('error').textContent = 'NO DEPARTURES';
                     show('error');
                     return;
                 }
@@ -818,7 +713,7 @@
                 });
 
                 if (filtered.length === 0) {
-                    document.getElementById('error').textContent = 'NO ' + config.modes.join('/').toUpperCase() + ' DEPARTURES';
+                    document.getElementById('error').textContent = 'NO ' + config.modes.join('/').toUpperCase() + ' SERVICE';
                     show('error');
                     return;
                 }
@@ -830,97 +725,44 @@
         // Display departures
         function displayDepartures(departures) {
             currentDepartures = departures;
-            var next = departures[0];
+            hide('loading');
+            hide('error');
+            hide('noConfig');
 
-            // Update next departure
-            document.getElementById('nextIcon').innerHTML = '<svg><use href="' + getIconHref(next.modeCode) + '"/></svg>';
-            document.getElementById('nextRoute').textContent = next.route;
-            document.getElementById('nextMode').textContent = next.mode.toUpperCase();
-            document.getElementById('nextDest').textContent = 'To ' + (next.destination || 'Unknown');
-            document.getElementById('nextTime').textContent = next.minutes <= 0 ? 'NOW' : next.minutes + ' min';
-            document.getElementById('nextClock').textContent = next.time || '';
-            document.getElementById('nextRealtime').textContent = next.isRealtime ? '●' : '';
-            document.getElementById('nextPlatform').textContent = next.platform ? 'Platform ' + next.platform : '';
+            var rowsEl = document.getElementById('rows');
+            rowsEl.innerHTML = '';
 
-            // Show occupancy
-            var occEl = document.getElementById('nextOccupancy');
-            if (next.occupancySymbol && next.occupancyLevel > 0) {
-                occEl.textContent = next.occupancySymbol;
-                occEl.className = 'occupancy occupancy-' + next.occupancyLevel;
-                occEl.title = next.occupancy;
-            } else {
-                occEl.textContent = '';
-            }
-
-            // Show next stops
-            var stopsEl = document.getElementById('nextStops');
-            if (next.nextStops && next.nextStops.length > 0) {
-                stopsEl.innerHTML = '→ ' + next.nextStops.join(' → ') + ' → <b>' + next.destination + '</b>';
-            } else {
-                stopsEl.innerHTML = '';
-            }
-
-            // Make next departure clickable
-            var nextDep = document.getElementById('nextDep');
-            nextDep.style.cursor = 'pointer';
-            nextDep.onclick = function() { showTripInfo(0); };
-
-            // Later departures
-            var laterEl = document.getElementById('laterDeps');
-            laterEl.innerHTML = '';
-
-            for (var i = 1; i < Math.min(5, departures.length); i++) {
+            // Show up to 5 rows
+            var count = Math.min(5, departures.length);
+            for (var i = 0; i < count; i++) {
                 var dep = departures[i];
-                var div = document.createElement('div');
-                div.className = 'later';
-                div.style.cursor = 'pointer';
-                div.setAttribute('data-index', i);
-                var timeText = dep.minutes <= 0 ? 'NOW' : dep.minutes + ' min';
-                var realtimeIndicator = dep.isRealtime ? ' ●' : '';
-                var occSymbol = (dep.occupancySymbol && dep.occupancyLevel > 0) ?
-                    '<span class="occupancy occupancy-' + dep.occupancyLevel + '">' + dep.occupancySymbol + '</span>' : '';
-                var stopsHtml = (dep.nextStops && dep.nextStops.length > 0) ?
-                    '<div class="next-stops">→ ' + dep.nextStops.slice(0, 2).join(' → ') + '...</div>' : '';
-                div.innerHTML =
-                    '<div class="icon"><svg><use href="' + getIconHref(dep.modeCode) + '"/></svg></div>' +
-                    '<div class="info">' +
-                        '<div class="route">' + dep.route + '</div>' +
-                        '<div class="destination">' + (dep.destination || '') + stopsHtml + '</div>' +
+                var row = document.createElement('div');
+                row.className = 'row';
+
+                var statusClass = dep.isRealtime ? 'live' : 'timetable';
+                var statusText = dep.isRealtime ? 'LIVE' : 'TIMETABLE';
+
+                // Add occupancy to status if available
+                if (dep.occupancy && dep.occupancyLevel > 0) {
+                    statusText += ' · ' + dep.occupancy.toUpperCase();
+                }
+
+                row.innerHTML =
+                    '<div class="route-tiles">' + createRouteTiles(dep.route) + '</div>' +
+                    '<div class="dest-info">' +
+                        '<div class="dest-name">' + (dep.destination || 'UNKNOWN').toUpperCase() + '</div>' +
+                        '<div class="dest-status"><span class="status-dot ' + statusClass + '"></span>' + statusText + '</div>' +
                     '</div>' +
-                    '<div class="time">' + timeText + realtimeIndicator + occSymbol +
-                        '<span class="time-clock">' + (dep.time || '') + '</span>' +
-                    '</div>';
-                div.onclick = function() {
-                    var idx = parseInt(this.getAttribute('data-index'));
-                    showTripInfo(idx);
-                };
-                laterEl.appendChild(div);
+                    '<div class="time-display">' + createTimeTiles(dep.minutes) + '</div>';
+
+                rowsEl.appendChild(row);
             }
 
-            show('departures');
             document.getElementById('updated').textContent = formatTime();
-
-            // Update filter info
-            var filterText = config.modes.length === 5 ? 'ALL MODES' : config.modes.join(' · ').toUpperCase();
-            document.getElementById('filterInfo').textContent = filterText;
+            updateClock();
         }
 
-        // Show trip info (stops along the way)
-        function showTripInfo(index) {
-            var dep = currentDepartures[index];
-            if (!dep) return;
-
-            var info = dep.route + ' to ' + dep.destination + '\\n';
-            info += 'Departs: ' + dep.time;
-            if (dep.isRealtime) info += ' (Real-time)';
-            info += '\\n';
-            if (dep.platform) info += 'Platform: ' + dep.platform + '\\n';
-            info += '\\nTap OK to continue';
-
-            alert(info);
-        }
-
-        // E-ink refresh
+        // E-ink full refresh (clear ghosting)
         function flashRefresh() {
             document.body.style.background = '#000';
             setTimeout(function() {
@@ -932,19 +774,25 @@
         function init() {
             loadConfig();
             setupModeFilters();
-            setupOrientationToggles();
-            applyOrientation();
+            updateClock();
 
             if (config.stopId) {
-                document.getElementById('headerStopName').textContent = config.stopName || '--';
+                document.getElementById('headerStopName').textContent = config.stopName || 'LOADING';
+                document.getElementById('headerStopDetail').textContent = config.stopDetail || '';
                 fetchDepartures();
             } else {
                 hide('loading');
                 show('noConfig');
             }
 
-            setInterval(fetchDepartures, 15000);  // Refresh every 15 seconds
-            setInterval(flashRefresh, 300000);   // E-ink flash every 5 minutes
+            // Update clock every second
+            setInterval(updateClock, 1000);
+
+            // Refresh departures every 15 seconds
+            setInterval(fetchDepartures, 15000);
+
+            // E-ink full refresh every 10 minutes
+            setInterval(flashRefresh, 600000);
 
             document.getElementById('searchInput').onkeypress = function(e) {
                 if (e.key === 'Enter') doSearch();
