@@ -414,7 +414,10 @@
 
         // Fetch departures
         function fetchDepartures() {
+            console.log('fetchDepartures called, stopId:', stopId);
+
             if (!stopId || !apiKey) {
+                console.log('No stopId or apiKey, showing noConfig');
                 hide('loading');
                 hide('error');
                 hide('buses');
@@ -423,6 +426,7 @@
             }
 
             var dt = getDateParams();
+            console.log('Fetching departures for stop:', stopId, 'date:', dt.date, 'time:', dt.time);
             var endpoint = '/departure_mon?' +
                 'outputFormat=rapidJSON' +
                 '&type_dm=stop' +
@@ -441,14 +445,17 @@
 
             apiRequest(endpoint, function(err, data) {
                 hide('loading');
+                console.log('Departure response:', err, data);
 
                 if (err) {
+                    console.log('Error fetching departures:', err);
                     document.getElementById('error').innerHTML = err;
                     show('error');
                     return;
                 }
 
                 if (!data.stopEvents || data.stopEvents.length === 0) {
+                    console.log('No stopEvents in response:', data);
                     document.getElementById('error').innerHTML = 'NO BUSES FOUND';
                     show('error');
                     return;
