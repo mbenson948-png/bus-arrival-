@@ -426,17 +426,20 @@
             }
 
             var dt = getDateParams();
-            console.log('Fetching departures for stop:', stopId, 'date:', dt.date, 'time:', dt.time);
+            // Extract numeric part of stop ID if it has a letter prefix
+            var numericStopId = stopId.replace(/^[A-Za-z]+/, '');
+            console.log('Fetching departures for stop:', stopId, '(numeric:', numericStopId + ')', 'date:', dt.date, 'time:', dt.time);
+
             var endpoint = '/departure_mon?' +
                 'outputFormat=rapidJSON' +
                 '&type_dm=stop' +
-                '&name_dm=' + encodeURIComponent(stopId) +
+                '&name_dm=' + encodeURIComponent(numericStopId) +
                 '&itdDate=' + dt.date +
                 '&itdTime=' + dt.time +
                 '&mode=direct' +
                 '&TfNSWDM=true' +
                 '&departureMonitorMacro=true' +
-                '&limit=3';
+                '&limit=10';
 
             show('loading');
             hide('error');
