@@ -123,7 +123,11 @@ function getDepartures(stopId, callback) {
         '&itdTime=' + time +
         '&departureMonitorMacro=true' +
         '&TfNSWDM=true' +
-        '&version=10.2.1.42';
+        '&version=10.2.1.42' +
+        '&outputFormat=rapidJSON' +
+        '&inclMOT_11=true' +  // Include school buses
+        '&depType=stopEvents' +
+        '&inclSubStops=true';
 
     tfnswRequest(endpoint, (err, data) => {
         if (err) return callback(err, null);
@@ -177,6 +181,24 @@ function getDepartures(stopId, callback) {
 
             const info = modeInfo[mode] || { name: 'Transport', key: 'bus' };
 
+            // Map occupancy to level and symbol
+            const occupancyMap = {
+                'MANY_SEATS_AVAILABLE': { level: 1, symbol: '○', text: 'Empty' },
+                'SEATS_AVAILABLE': { level: 2, symbol: '◔', text: 'Seats' },
+                'FEW_SEATS_AVAILABLE': { level: 3, symbol: '◑', text: 'Busy' },
+                'STANDING_ROOM_ONLY': { level: 4, symbol: '◕', text: 'Full' },
+                'FULL': { level: 5, symbol: '●', text: 'Packed' },
+                'NOT_ACCEPTING_PASSENGERS': { level: 6, symbol: '⊘', text: 'Full' }
+            };
+            const occRaw = event.occupancy || 'UNKNOWN';
+            const occInfo = occupancyMap[occRaw] || { level: 0, symbol: '?', text: '' };
+
+            // Get subsequent stops if available
+            let nextStops = [];
+            if (event.subsequentStops && event.subsequentStops.length > 0) {
+                nextStops = event.subsequentStops.slice(0, 4).map(s => s.name || s.disassembledName || '');
+            }
+
             return {
                 route: route,
                 destination: destination,
@@ -186,7 +208,10 @@ function getDepartures(stopId, callback) {
                 mode: info.name,
                 modeCode: mode,
                 modeKey: info.key,
-                occupancy: event.occupancy || 'UNKNOWN',
+                occupancy: occInfo.text,
+                occupancyLevel: occInfo.level,
+                occupancySymbol: occInfo.symbol,
+                nextStops: nextStops,
                 platform: event.location ? event.location.platform : ''
             };
         });

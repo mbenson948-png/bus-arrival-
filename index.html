@@ -121,6 +121,25 @@
             font-size: 14px;
             font-weight: bold;
         }
+        .next-departure .occupancy {
+            display: inline-block;
+            font-size: 18px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .next-departure .next-stops {
+            font-size: 11px;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #000;
+        }
+        .next-departure .next-stops span {
+            display: inline;
+        }
+        .occupancy-1 { opacity: 0.4; }
+        .occupancy-2 { opacity: 0.6; }
+        .occupancy-3 { opacity: 0.8; }
+        .occupancy-4, .occupancy-5, .occupancy-6 { opacity: 1; }
 
         /* Later departures */
         .later {
@@ -150,6 +169,15 @@
         .later .time-clock {
             font-size: 14px;
             display: block;
+        }
+        .later .occupancy {
+            font-size: 16px;
+            margin-left: 6px;
+        }
+        .later .next-stops {
+            font-size: 9px;
+            color: #333;
+            margin-top: 2px;
         }
 
         /* Portrait/Landscape modes */
@@ -470,11 +498,13 @@
                     </div>
                 </div>
                 <div class="destination" id="nextDest">--</div>
+                <div class="next-stops" id="nextStops"></div>
                 <div class="time-row">
                     <div>
                         <span class="time-main" id="nextTime">-- min</span>
                         <span class="time-clock" id="nextClock">--:--</span>
                         <span class="time-realtime" id="nextRealtime"></span>
+                        <span class="occupancy" id="nextOccupancy"></span>
                     </div>
                     <div class="platform" id="nextPlatform"></div>
                 </div>
@@ -806,11 +836,29 @@
             document.getElementById('nextIcon').innerHTML = '<svg><use href="' + getIconHref(next.modeCode) + '"/></svg>';
             document.getElementById('nextRoute').textContent = next.route;
             document.getElementById('nextMode').textContent = next.mode.toUpperCase();
-            document.getElementById('nextDest').textContent = next.destination || 'Unknown destination';
+            document.getElementById('nextDest').textContent = 'To ' + (next.destination || 'Unknown');
             document.getElementById('nextTime').textContent = next.minutes <= 0 ? 'NOW' : next.minutes + ' min';
             document.getElementById('nextClock').textContent = next.time || '';
             document.getElementById('nextRealtime').textContent = next.isRealtime ? '●' : '';
             document.getElementById('nextPlatform').textContent = next.platform ? 'Platform ' + next.platform : '';
+
+            // Show occupancy
+            var occEl = document.getElementById('nextOccupancy');
+            if (next.occupancySymbol && next.occupancyLevel > 0) {
+                occEl.textContent = next.occupancySymbol;
+                occEl.className = 'occupancy occupancy-' + next.occupancyLevel;
+                occEl.title = next.occupancy;
+            } else {
+                occEl.textContent = '';
+            }
+
+            // Show next stops
+            var stopsEl = document.getElementById('nextStops');
+            if (next.nextStops && next.nextStops.length > 0) {
+                stopsEl.innerHTML = '→ ' + next.nextStops.join(' → ') + ' → <b>' + next.destination + '</b>';
+            } else {
+                stopsEl.innerHTML = '';
+            }
 
             // Make next departure clickable
             var nextDep = document.getElementById('nextDep');
@@ -829,13 +877,17 @@
                 div.setAttribute('data-index', i);
                 var timeText = dep.minutes <= 0 ? 'NOW' : dep.minutes + ' min';
                 var realtimeIndicator = dep.isRealtime ? ' ●' : '';
+                var occSymbol = (dep.occupancySymbol && dep.occupancyLevel > 0) ?
+                    '<span class="occupancy occupancy-' + dep.occupancyLevel + '">' + dep.occupancySymbol + '</span>' : '';
+                var stopsHtml = (dep.nextStops && dep.nextStops.length > 0) ?
+                    '<div class="next-stops">→ ' + dep.nextStops.slice(0, 2).join(' → ') + '...</div>' : '';
                 div.innerHTML =
                     '<div class="icon"><svg><use href="' + getIconHref(dep.modeCode) + '"/></svg></div>' +
                     '<div class="info">' +
                         '<div class="route">' + dep.route + '</div>' +
-                        '<div class="destination">' + (dep.destination || '') + '</div>' +
+                        '<div class="destination">' + (dep.destination || '') + stopsHtml + '</div>' +
                     '</div>' +
-                    '<div class="time">' + timeText + realtimeIndicator +
+                    '<div class="time">' + timeText + realtimeIndicator + occSymbol +
                         '<span class="time-clock">' + (dep.time || '') + '</span>' +
                     '</div>';
                 div.onclick = function() {
@@ -891,8 +943,8 @@
                 show('noConfig');
             }
 
-            setInterval(fetchDepartures, 60000);
-            setInterval(flashRefresh, 300000);
+            setInterval(fetchDepartures, 15000);  // Refresh every 15 seconds
+            setInterval(flashRefresh, 300000);   // E-ink flash every 5 minutes
 
             document.getElementById('searchInput').onkeypress = function(e) {
                 if (e.key === 'Enter') doSearch();
