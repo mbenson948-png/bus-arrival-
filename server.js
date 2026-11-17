@@ -55,48 +55,50 @@ function tfnswRequest(endpoint, callback) {
 
 // Search for stops/stations
 function searchStops(query, callback) {
+    // Use 'stop' type to get more specific bus stop results
     const endpoint = '/v1/tp/stop_finder?' +
         'outputFormat=rapidJSON' +
-        '&type_sf=any' +
+        '&type_sf=stop' +
         '&name_sf=' + encodeURIComponent(query) +
         '&coordOutputFormat=EPSG:4326' +
         '&TfNSWSF=true' +
         '&version=10.2.1.42' +
-        '&anyMaxSizeHitList=50';
+        '&anyMaxSizeHitList=100';
 
     tfnswRequest(endpoint, (err, data) => {
         if (err) return callback(err, null);
 
-        // Get all locations and clean up names
-        const stops = (data.locations || [])
-            .filter(loc => {
-                // Include stops and platforms
-                return loc.type === 'stop' || loc.type === 'platform' ||
-                       (loc.type === 'poi' && loc.productClasses && loc.productClasses.length > 0);
-            })
-            .map(loc => {
-                // Use the cleanest name available
-                let name = loc.disassembledName || loc.name || 'Unknown';
-                let parent = loc.parent ? (loc.parent.disassembledName || loc.parent.name || '') : '';
+        console.log('Search for "' + query + '" returned ' + (data.locations || []).length + ' results');
 
-                // Build mode info
-                const modeNames = [];
-                (loc.productClasses || []).forEach(m => {
-                    if (m === 1) modeNames.push('Train');
-                    else if (m === 2 || m === 4) modeNames.push('Metro/LR');
-                    else if (m === 5) modeNames.push('Bus');
-                    else if (m === 9) modeNames.push('Ferry');
-                });
+        // Don't filter - include ALL results from the API
+        const stops = (data.locations || []).map(loc => {
+            // Use full name for better identification
+            let name = loc.name || loc.disassembledName || 'Unknown';
+            let parent = '';
 
-                return {
-                    id: loc.id,
-                    name: name,
-                    parent: parent,
-                    type: loc.type,
-                    modes: loc.productClasses || [],
-                    modeNames: [...new Set(modeNames)].join(', ')
-                };
+            if (loc.parent) {
+                parent = loc.parent.name || loc.parent.disassembledName || '';
+            }
+
+            // Build mode info
+            const modeNames = [];
+            (loc.productClasses || []).forEach(m => {
+                if (m === 1) modeNames.push('Train');
+                else if (m === 2 || m === 4) modeNames.push('Metro/LR');
+                else if (m === 5) modeNames.push('Bus');
+                else if (m === 9) modeNames.push('Ferry');
+                else if (m === 11) modeNames.push('School');
             });
+
+            return {
+                id: loc.id,
+                name: name,
+                parent: parent,
+                type: loc.type,
+                modes: loc.productClasses || [],
+                modeNames: [...new Set(modeNames)].join(', ') || loc.type
+            };
+        });
 
         callback(null, stops);
     });
