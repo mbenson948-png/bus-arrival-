@@ -61,21 +61,42 @@ function searchStops(query, callback) {
         '&name_sf=' + encodeURIComponent(query) +
         '&coordOutputFormat=EPSG:4326' +
         '&TfNSWSF=true' +
-        '&version=10.2.1.42';
+        '&version=10.2.1.42' +
+        '&anyMaxSizeHitList=50';
 
     tfnswRequest(endpoint, (err, data) => {
         if (err) return callback(err, null);
 
-        // Filter to stops only and extract useful info
+        // Get all locations and clean up names
         const stops = (data.locations || [])
-            .filter(loc => loc.type === 'stop' || loc.type === 'platform' || loc.type === 'poi')
-            .map(loc => ({
-                id: loc.id,
-                name: loc.disassembledName || loc.name,
-                parent: loc.parent ? loc.parent.name : '',
-                type: loc.type,
-                modes: loc.productClasses || []
-            }));
+            .filter(loc => {
+                // Include stops and platforms
+                return loc.type === 'stop' || loc.type === 'platform' ||
+                       (loc.type === 'poi' && loc.productClasses && loc.productClasses.length > 0);
+            })
+            .map(loc => {
+                // Use the cleanest name available
+                let name = loc.disassembledName || loc.name || 'Unknown';
+                let parent = loc.parent ? (loc.parent.disassembledName || loc.parent.name || '') : '';
+
+                // Build mode info
+                const modeNames = [];
+                (loc.productClasses || []).forEach(m => {
+                    if (m === 1) modeNames.push('Train');
+                    else if (m === 2 || m === 4) modeNames.push('Metro/LR');
+                    else if (m === 5) modeNames.push('Bus');
+                    else if (m === 9) modeNames.push('Ferry');
+                });
+
+                return {
+                    id: loc.id,
+                    name: name,
+                    parent: parent,
+                    type: loc.type,
+                    modes: loc.productClasses || [],
+                    modeNames: [...new Set(modeNames)].join(', ')
+                };
+            });
 
         callback(null, stops);
     });
@@ -136,20 +157,26 @@ function getDepartures(stopId, callback) {
                 minutes = Math.round((depDate - now) / 60000);
             }
 
-            // Mode names
-            const modeNames = {
-                1: 'Train',
-                4: 'Light Rail',
-                5: 'Bus',
-                9: 'Ferry',
-                11: 'School Bus'
+            // Mode names and keys for filtering
+            const modeInfo = {
+                1: { name: 'Train', key: 'train' },
+                2: { name: 'Metro', key: 'metro' },
+                4: { name: 'Light Rail', key: 'metro' },
+                5: { name: 'Bus', key: 'bus' },
+                7: { name: 'Coach', key: 'bus' },
+                9: { name: 'Ferry', key: 'ferry' },
+                11: { name: 'School Bus', key: 'schoolbus' }
             };
+
+            const info = modeInfo[mode] || { name: 'Transport', key: 'bus' };
 
             return {
                 route: route,
                 destination: destination,
                 minutes: minutes,
-                mode: modeNames[mode] || 'Transport',
+                mode: info.name,
+                modeCode: mode,
+                modeKey: info.key,
                 occupancy: event.occupancy || 'UNKNOWN',
                 platform: event.location ? event.location.platform : ''
             };
