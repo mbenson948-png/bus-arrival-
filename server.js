@@ -22,7 +22,7 @@ var path = require('path');
 var PORT = process.env.PORT || 3000;
 var API_HOST = 'api.transport.nsw.gov.au';
 var API_BASE = '/v1/tp';
-var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsSWlIak1rTVFIdXRSTU41bGNuWTZBTEVKS3haTFFTQ3VYbnI2UmFCM2dZIiwiaWF0IjoxNzY5NzUxMDcxfQ.YoCUHusmAVjNklnQqlkVVCHK1VaLfcEliuoQ0zm_MlU';
+var API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJQWFh6Q1I4OVd3bUlweTdldzZHbnRFcXV3azJXNW1NQXZ6d3BlX19aVkRVIiwiaWF0IjoxNzk0ODk4Mjg1fQ.V7JCyJnsy0AfhWytEZDVGDc_OEXavXHFScxX4E34WQM';
 
 // Serve static files
 function serveStatic(res, filePath, contentType) {
